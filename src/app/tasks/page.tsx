@@ -254,16 +254,22 @@ export default function TasksPage() {
             ) : (
               <span className="w-4" />
             )}
-            <input
-              type="checkbox"
-              checked={normalizeStatus(node.status) === "done"}
-              onChange={() => toggleDone(node)}
-              className="h-4 w-4"
+            <span
+              className={`inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                normalizeStatus(node.status) === "done"
+                  ? "bg-green-500"
+                  : normalizeStatus(node.status) === "in-progress"
+                  ? "bg-blue-500"
+                  : normalizeStatus(node.status) === "blocked"
+                  ? "bg-red-500"
+                  : "bg-gray-500"
+              }`}
+              title={node.status}
             />
           </div>
 
-          <button className="px-2 py-2 text-left text-sm" onClick={() => setSelectedTaskId(node.id)}>
-            <span className={normalizeStatus(node.status) === "done" ? "line-through text-muted-foreground" : ""}>{node.title}</span>
+          <button className="px-2 py-2 text-left text-sm hover:text-primary" onClick={() => setSelectedTaskId(node.id)}>
+            <span className={normalizeStatus(node.status) === "done" ? "opacity-50" : ""}>{node.title}</span>
             {childCount > 0 && <span className="ml-2 text-xs text-muted-foreground">({childCount} 子任务)</span>}
           </button>
 
@@ -312,8 +318,8 @@ export default function TasksPage() {
           </div>
 
           <div className="px-2 py-2">
-            <button className="text-muted-foreground hover:text-red-400" onClick={() => deleteTask(node.id)}>
-              ⋯
+            <button className="text-muted-foreground hover:text-red-400 text-lg leading-none" title="删除" onClick={() => deleteTask(node.id)}>
+              ×
             </button>
           </div>
         </div>,
@@ -342,7 +348,7 @@ export default function TasksPage() {
 
       <div className="rounded-lg border border-white/10 overflow-hidden">
         <div className="grid grid-cols-[36px_minmax(220px,1fr)_90px_170px_110px_48px] bg-white/5 text-xs text-muted-foreground">
-          <div className="px-2 py-2">状态</div>
+          <div className="px-2 py-2"></div>
           <div className="px-2 py-2">任务</div>
           <div className="px-2 py-2">负责人</div>
           <div className="px-2 py-2">DDL</div>
