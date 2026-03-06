@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, FileText, Folder, ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -52,7 +51,7 @@ export default function MemoryPage() {
   });
 
   return (
-    <div className="flex h-[calc(100vh)] overflow-hidden">
+    <div className="flex h-screen overflow-hidden">
       {/* File browser sidebar */}
       <div className="w-72 border-r border-border flex flex-col shrink-0">
         <div className="p-4 border-b border-border space-y-3">
@@ -70,7 +69,7 @@ export default function MemoryPage() {
             </button>
           </div>
         </div>
-        <ScrollArea className="flex-1 p-2">
+        <div className="flex-1 overflow-y-auto p-2">
           {searchResults.length > 0 ? (
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground px-2 py-1">{searchResults.length} results</p>
@@ -121,20 +120,20 @@ export default function MemoryPage() {
               ))}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </div>
 
       {/* Content viewer */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0">
         {currentFile ? (
           <>
-            <div className="p-4 border-b border-border flex items-center gap-3">
+            <div className="p-4 border-b border-border flex items-center gap-3 shrink-0">
               <button onClick={() => setCurrentFile(null)} className="p-1 hover:bg-muted rounded">
                 <ArrowLeft className="h-4 w-4" />
               </button>
               <Badge variant="outline" className="text-xs font-mono">{currentFile}</Badge>
             </div>
-            <div className="flex-1 overflow-auto p-6">
+            <div className="flex-1 overflow-y-auto p-6">
               <div className="prose prose-invert prose-sm max-w-none">
                 <ReactMarkdown>{content}</ReactMarkdown>
               </div>
