@@ -13,6 +13,7 @@ interface CronJob {
   enabled?: boolean;
   active?: boolean;
   agentId?: string;
+  payload?: { agentId?: string; [key: string]: any };
   state?: {
     lastStatus?: string;
     lastRunAtMs?: number;
@@ -102,10 +103,10 @@ export default function CalendarPage() {
     try { await load(true); } finally { setSyncing(false); }
   };
 
-  // Group by agentId
+  // Group by agentId — check payload.agentId as fallback (normalizeCron strips top-level agentId)
   const grouped: Record<string, CronJob[]> = {};
   jobs.forEach((j) => {
-    const key = j.agentId || "main";
+    const key = (j as any).agent_id || j.agentId || j.payload?.agentId || "main";
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(j);
   });

@@ -6,6 +6,7 @@ type CronItem = {
   name?: string;
   schedule?: string;
   enabled?: boolean;
+  agent_id?: string;
   last_run?: string | null;
   next_run?: string | null;
   payload?: any;
@@ -17,6 +18,7 @@ function normalizeCron(raw: any): CronItem {
     name: raw.name || raw.label || raw.id || "Unnamed",
     schedule: raw.schedule || raw.cron || "* * * * *",
     enabled: raw.enabled ?? raw.active ?? true,
+    agent_id: raw.agentId || raw.agent_id || null,
     last_run: raw.last_run || raw.lastRun || null,
     next_run: raw.next_run || raw.nextRun || null,
     payload: raw,
