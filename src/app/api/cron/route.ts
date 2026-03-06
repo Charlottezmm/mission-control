@@ -36,8 +36,8 @@ async function readCache() {
 
 async function syncFromGateway() {
   const endpoints = [
-    "http://localhost:4000/api/crons",
-    "http://127.0.0.1:4000/api/crons",
+    "http://localhost:18789/api/crons",
+    "http://127.0.0.1:18789/api/crons",
   ];
 
   let list: any[] | null = null;

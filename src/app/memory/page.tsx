@@ -139,23 +139,20 @@ export default function MemoryPage() {
   return (
     <div className="flex h-full overflow-hidden bg-background">
       <aside className="w-[280px] border-r border-border flex flex-col shrink-0">
-        <div className="p-4 border-b border-border space-y-3">
-          <h1 className="text-lg font-semibold">Memory</h1>
-          <div className="flex gap-2">
+        <div className="flex-1 overflow-y-auto p-2">
+          {/* Search — no separate header, stays inline with list */}
+          <div className="flex gap-1 mb-2 px-1 pt-1">
             <Input
               placeholder="Search memory..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && doSearch()}
-              className="text-xs"
+              className="text-xs h-8"
             />
-            <button onClick={doSearch} className="p-2 hover:bg-muted rounded-md" aria-label="Search memory">
+            <button onClick={doSearch} className="p-1.5 hover:bg-muted rounded-md shrink-0" aria-label="Search memory">
               <Search className="h-3.5 w-3.5" />
             </button>
           </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-2">
           {searchResults.length > 0 || searching ? (
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground px-2 py-1">
@@ -246,17 +243,13 @@ export default function MemoryPage() {
           </div>
         ) : (
           <>
-            <div className="p-4 border-b border-border shrink-0">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="font-mono text-xs">
-                  {stripMd(getBaseName(currentFile))}
-                </Badge>
-              </div>
-              <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="px-6 pt-5 pb-3 border-b border-border shrink-0 flex items-center gap-3">
+              <Badge variant="outline" className="font-mono text-xs">
+                {stripMd(getBaseName(currentFile))}
+              </Badge>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock3 className="h-3.5 w-3.5" />
-                <span>
-                  Last updated {formatTime(contentUpdatedAt || currentFileMeta?.synced_at)}
-                </span>
+                <span>Last updated {formatTime(contentUpdatedAt || currentFileMeta?.synced_at)}</span>
               </div>
             </div>
 

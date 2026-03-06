@@ -18,11 +18,7 @@ export function Sidebar() {
   const pathname = usePathname();
   return (
     <aside className="w-60 border-r border-border bg-card flex flex-col shrink-0">
-      <div className="p-5 border-b border-border">
-        <h1 className="text-lg font-bold tracking-tight">🚀 Mission Control</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">OpenClaw Command Center</p>
-      </div>
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-3 space-y-1 pt-4">
         {nav.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (

@@ -1624,9 +1624,9 @@ export default function PixelOfficePage() {
     const chipToneClass = isTempWorker
       ? 'bg-red-900/45 border-red-700/80 text-red-100 animate-pulse'
       : (
-        agent.state === 'working' ? `pixel-agent-chip-working${isMobileViewport ? '' : ' animate-pulse'}` :
-        agent.state === 'idle' ? `pixel-agent-chip-idle${isMobileViewport ? '' : ' animate-pulse'}` :
-        'pixel-agent-chip-neutral'
+        agent.state === 'working' ? `bg-green-900/60 border-green-500/80 text-green-50${isMobileViewport ? '' : ' animate-pulse'}` :
+        agent.state === 'idle' ? `bg-gray-800/50 border-gray-500/60 text-gray-200${isMobileViewport ? '' : ' animate-pulse'}` :
+        'bg-gray-700/30 border-gray-500/40 text-gray-300'
       )
     return (
       <div key={agent.agentId} className="group relative overflow-visible">
@@ -1648,10 +1648,10 @@ export default function PixelOfficePage() {
           ) : (
             <span className={mobileGrid ? 'min-w-0 text-xs truncate' : 'text-sm'}>{agent.name}</span>
           )}
-          {agent.state === 'working' && <span className={`pixel-agent-chip-state uppercase tracking-wider ${mobileGrid ? 'text-[9px] truncate' : 'text-[10px]'} ${isTempWorker ? 'text-red-100' : 'text-green-200'}`}>{t('pixelOffice.state.working')}</span>}
-          {agent.state === 'idle' && <span className={`pixel-agent-chip-state uppercase tracking-wider ${mobileGrid ? 'text-[9px] truncate' : 'text-[10px]'}`}>{t('pixelOffice.state.idle')}</span>}
-          {agent.state === 'offline' && <span className={`pixel-agent-chip-state uppercase tracking-wider ${mobileGrid ? 'text-[9px] truncate' : 'text-[10px]'}`}>{t('pixelOffice.state.offline')}</span>}
-          {agent.state === 'waiting' && <span className={`pixel-agent-chip-state uppercase tracking-wider ${mobileGrid ? 'text-[9px] truncate' : 'text-[10px]'}`}>{t('pixelOffice.state.waiting')}</span>}
+          {agent.state === 'working' && <span className={`font-bold uppercase tracking-wider ${mobileGrid ? 'text-[10px] truncate' : 'text-xs'} ${isTempWorker ? 'text-red-200' : 'text-green-300'}`}>{t('pixelOffice.state.working')}</span>}
+          {agent.state === 'idle' && <span className={`font-semibold uppercase tracking-wider ${mobileGrid ? 'text-[10px] truncate' : 'text-xs'} text-gray-400`}>{t('pixelOffice.state.idle')}</span>}
+          {agent.state === 'offline' && <span className={`font-semibold uppercase tracking-wider ${mobileGrid ? 'text-[10px] truncate' : 'text-xs'} text-gray-500`}>{t('pixelOffice.state.offline')}</span>}
+          {agent.state === 'waiting' && <span className={`font-semibold uppercase tracking-wider ${mobileGrid ? 'text-[10px] truncate' : 'text-xs'} text-yellow-400`}>{t('pixelOffice.state.waiting')}</span>}
         </div>
         {!isMobileViewport && (
           <div className="pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-[calc(100%+6px)] whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--card)]/95 px-2 py-1 text-[11px] text-[var(--text)] opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100">
@@ -1663,7 +1663,7 @@ export default function PixelOfficePage() {
   }
 
   return (
-    <div className="relative flex flex-col overflow-hidden h-[calc(100dvh-3.5rem)] md:h-full">
+    <div className="relative flex flex-col overflow-hidden h-[calc(100dvh-60px)] md:h-full">
       {/* Floating photo comment DOM bubbles */}
       {floatingCommentsRef.current.map(fc => (
         <div key={fc.key} className="absolute pointer-events-none z-30 whitespace-nowrap"
@@ -1703,7 +1703,7 @@ export default function PixelOfficePage() {
         </div>
       ))}
       {/* Top bar: agent tags + controls */}
-      <div className="flex flex-col gap-2 p-3 md:p-4 border-b border-[var(--border)]">
+      <div className="flex flex-col gap-2 p-3 md:p-4">
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm font-bold text-[var(--text)]">{t('pixelOffice.title')}</span>
           <div className="flex gap-2">
