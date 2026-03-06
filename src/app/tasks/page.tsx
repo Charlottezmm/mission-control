@@ -22,6 +22,11 @@ interface TaskNode extends Task {
   children: TaskNode[];
 }
 
+const SUPABASE_BASE = "https://hkarpznjtrhehauvcphf.supabase.co/rest/v1/tasks";
+const SUPABASE_LIST_URL = `${SUPABASE_BASE}?select=*&order=created_at.asc`;
+const SUPABASE_API_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrYXJwem5qdHJoZWhhdXZjcGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MDAwNjQsImV4cCI6MjA4ODI3NjA2NH0.kXedOrtBkcXVc5s01MRA2sxdc1yDmFFi8TTskeqs0J0";
+
 const AGENTS = {
   main: { name: "Samantha", emoji: "🦐" },
   writer: { name: "Luna", emoji: "✍️" },
@@ -31,25 +36,15 @@ const AGENTS = {
 } as const;
 
 type AgentKey = keyof typeof AGENTS;
-
 const FILTERS = ["all", "backlog", "in-progress", "done"] as const;
 
 function parseDDL(desc: string): { ddl: string | null; text: string } {
-  const m = (desc || "").match(/DDL:(\d{4}-\d{2}-\d{2})\s*\|?\s*/);
-  return m ? { ddl: m[1], text: desc.replace(m[0], "").trim() } : { ddl: null, text: desc || "" };
+  const m = (desc || '').match(/DDL:(\d{4}-\d{2}-\d{2})\s*\|?\s*/)
+  return m ? { ddl: m[1], text: desc.replace(m[0], '').trim() } : { ddl: null, text: desc || '' }
 }
 
 function serializeDesc(ddl: string | null, text: string): string {
   return ddl ? `DDL:${ddl} | ${text}` : text;
-}
-
-function ddlColor(ddl: string | null): string {
-  if (!ddl) return "text-gray-400";
-  const days = Math.ceil((new Date(ddl).getTime() - Date.now()) / 86400000);
-  if (days <= 3) return "bg-red-500/20 text-red-400 border border-red-500/30";
-  if (days <= 7) return "bg-orange-500/20 text-orange-400 border border-orange-500/30";
-  if (days <= 30) return "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30";
-  return "bg-gray-500/20 text-gray-400 border border-gray-500/30";
 }
 
 function normalizeStatus(status?: string | null) {
@@ -86,6 +81,50 @@ function buildTree(tasks: Task[]): TaskNode[] {
   return makeNodes(null);
 }
 
+function startOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function daysUntil(ddl: string): number {
+  const due = startOfDay(new Date(ddl));
+  const today = startOfDay(new Date());
+  return Math.ceil((due.getTime() - today.getTime()) / 86400000);
+}
+
+function ddlBadgeClass(ddl: string | null): string {
+  if (!ddl) return "bg-slate-100 text-slate-500 border border-slate-200";
+  const days = daysUntil(ddl);
+  if (days <= 3) return "bg-red-100 text-red-700 border border-red-200";
+  if (days <= 7) return "bg-orange-100 text-orange-700 border border-orange-200";
+  return "bg-slate-100 text-slate-600 border border-slate-200";
+}
+
+function statusDotClass(status?: string | null): string {
+  const n = normalizeStatus(status);
+  if (n === "done") return "bg-green-500";
+  if (n === "in-progress") return "bg-blue-500";
+  if (n === "blocked") return "bg-red-500";
+  return "bg-slate-400";
+}
+
+function priorityBadgeClass(p?: string | null) {
+  if (p === "high") return "bg-red-50 text-red-700 border-red-200";
+  if (p === "low") return "bg-slate-100 text-slate-600 border-slate-200";
+  return "bg-blue-50 text-blue-700 border-blue-200";
+}
+
+function filterTree(nodes: TaskNode[], filter: (typeof FILTERS)[number]): TaskNode[] {
+  if (filter === "all") return nodes;
+  const out: TaskNode[] = [];
+  for (const node of nodes) {
+    const children = filterTree(node.children, filter);
+    if (normalizeStatus(node.status) === filter || children.length > 0) {
+      out.push({ ...node, children });
+    }
+  }
+  return out;
+}
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
@@ -109,11 +148,20 @@ export default function TasksPage() {
   const [addingSubtask, setAddingSubtask] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState("");
 
+  const headers = useMemo(
+    () => ({
+      apikey: SUPABASE_API_KEY,
+      Authorization: `Bearer ${SUPABASE_API_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    }),
+    [],
+  );
+
   const load = async () => {
-    const r = await fetch("/api/tasks", { cache: "no-store" });
+    const r = await fetch(SUPABASE_LIST_URL, { headers, cache: "no-store" });
     const data = await r.json();
-    const list = Array.isArray(data) ? data : data.tasks || [];
-    setTasks(list);
+    setTasks(Array.isArray(data) ? data : []);
   };
 
   useEffect(() => {
@@ -123,21 +171,23 @@ export default function TasksPage() {
   const taskById = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
   const tree = useMemo(() => buildTree(tasks), [tasks]);
   const topLevelTasks = useMemo(() => tasks.filter((t) => !t.parent_id), [tasks]);
+  const visibleTree = useMemo(() => filterTree(tree, filter), [tree, filter]);
 
-  useEffect(() => {
-    setCollapsedRoots((prev) => {
-      const next = { ...prev };
-      tree.forEach((t) => {
-        if (!(t.id in next)) next[t.id] = false;
-      });
-      return next;
-    });
-  }, [tree]);
+  const filteredTasks = useMemo(() => {
+    if (filter === "all") return tasks;
+    return tasks.filter((t) => normalizeStatus(t.status) === filter);
+  }, [tasks, filter]);
 
-  const visibleTree = useMemo(() => {
-    if (filter === "all") return tree;
-    return tree.filter((n) => normalizeStatus(n.status) === filter);
-  }, [tree, filter]);
+  const weeklyDDLTasks = useMemo(() => {
+    return filteredTasks
+      .map((t) => ({ task: t, ddl: parseDDL(t.description || "").ddl }))
+      .filter((x) => !!x.ddl)
+      .filter((x) => {
+        const d = daysUntil(x.ddl!);
+        return d >= 0 && d <= 7;
+      })
+      .sort((a, b) => daysUntil(a.ddl!) - daysUntil(b.ddl!));
+  }, [filteredTasks]);
 
   const selectedTask = selectedTaskId ? taskById.get(selectedTaskId) || null : null;
   const selectedChildren = useMemo(
@@ -149,19 +199,35 @@ export default function TasksPage() {
     if (selectedTask) setTitleDraft(selectedTask.title || "");
   }, [selectedTask?.id]);
 
+  useEffect(() => {
+    setCollapsedRoots((prev) => {
+      const next = { ...prev };
+      tree.forEach((t) => {
+        if (!(t.id in next)) next[t.id] = false;
+      });
+      return next;
+    });
+  }, [tree]);
+
   const patchTask = async (id: string, updates: Partial<Task>) => {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
-    const r = await fetch("/api/tasks", {
+    const r = await fetch(`${SUPABASE_BASE}?id=eq.${encodeURIComponent(id)}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, ...updates }),
+      headers,
+      body: JSON.stringify(updates),
     });
     if (!r.ok) await load();
   };
 
   const deleteTask = async (id: string) => {
     if (!window.confirm("删除这个任务？")) return;
-    await fetch(`/api/tasks?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    await fetch(`${SUPABASE_BASE}?id=eq.${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: {
+        apikey: SUPABASE_API_KEY,
+        Authorization: `Bearer ${SUPABASE_API_KEY}`,
+      },
+    });
     if (selectedTaskId === id) setSelectedTaskId(null);
     await load();
   };
@@ -172,20 +238,14 @@ export default function TasksPage() {
     await patchTask(task.id, { description: nextDesc || null });
   };
 
-  const toggleDone = async (task: Task) => {
-    const current = normalizeStatus(task.status);
-    const next = current === "done" ? "backlog" : "done";
-    await patchTask(task.id, { status: next });
-  };
-
   const onCreateTask = async (e: FormEvent) => {
     e.preventDefault();
     if (!newTask.title.trim()) return;
     setCreating(true);
     try {
-      await fetch("/api/tasks", {
+      await fetch(SUPABASE_BASE, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           title: newTask.title.trim(),
           assignee: newTask.assignee,
@@ -205,9 +265,9 @@ export default function TasksPage() {
 
   const onCreateSubtask = async () => {
     if (!selectedTask || !subtaskTitle.trim()) return;
-    await fetch("/api/tasks", {
+    await fetch(SUPABASE_BASE, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         title: subtaskTitle.trim(),
         assignee: normalizeAssignee(selectedTask.assignee),
@@ -219,12 +279,6 @@ export default function TasksPage() {
     setAddingSubtask(false);
     setSubtaskTitle("");
     await load();
-  };
-
-  const priorityBadgeClass = (p?: string | null) => {
-    if (p === "high") return "bg-red-500/20 text-red-300 border-red-500/30";
-    if (p === "low") return "bg-slate-500/20 text-slate-300 border-slate-500/30";
-    return "bg-blue-500/20 text-blue-300 border-blue-500/30";
   };
 
   const renderRows = (nodes: TaskNode[], level = 0) => {
@@ -239,14 +293,14 @@ export default function TasksPage() {
       rows.push(
         <div
           key={node.id}
-          className={`grid grid-cols-[36px_minmax(220px,1fr)_90px_170px_110px_48px] items-center border-b border-white/5 hover:bg-white/5 ${
-            selectedTaskId === node.id ? "bg-white/10" : ""
-          }`}
+          className={`grid grid-cols-[36px_minmax(220px,1fr)_90px_130px_110px_48px] items-center border-b border-slate-200 hover:bg-slate-50 ${
+            selectedTaskId === node.id ? "bg-violet-50" : ""
+          } ${level > 0 ? "text-[13px]" : "text-sm"}`}
         >
           <div className="px-2 py-2 flex items-center gap-1" style={{ paddingLeft: 8 + level * 20 }}>
             {childCount > 0 ? (
               <button
-                className="text-xs text-muted-foreground w-4"
+                className="text-xs text-slate-500 w-4"
                 onClick={() => setCollapsedRoots((s) => ({ ...s, [node.id]: !s[node.id] }))}
               >
                 {collapsed ? "▶" : "▼"}
@@ -254,29 +308,14 @@ export default function TasksPage() {
             ) : (
               <span className="w-4" />
             )}
-            <span
-              className={`inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                normalizeStatus(node.status) === "done"
-                  ? "bg-green-500"
-                  : normalizeStatus(node.status) === "in-progress"
-                  ? "bg-blue-500"
-                  : normalizeStatus(node.status) === "blocked"
-                  ? "bg-red-500"
-                  : "bg-gray-500"
-              }`}
-              title={node.status}
-            />
+            <span className={`inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 ${statusDotClass(node.status)}`} title={node.status} />
           </div>
 
-          <button className="px-2 py-2 text-left text-sm hover:text-primary" onClick={() => setSelectedTaskId(node.id)}>
-            <span className={normalizeStatus(node.status) === "done" ? "opacity-50" : ""}>{node.title}</span>
-            {childCount > 0 && <span className="ml-2 text-xs text-muted-foreground">({childCount} 子任务)</span>}
+          <button className="px-2 py-2 text-left hover:text-violet-700" onClick={() => setSelectedTaskId(node.id)}>
+            <span className={normalizeStatus(node.status) === "done" ? "opacity-60 line-through" : ""}>{node.title}</span>
           </button>
 
-          <div className="px-2 py-2 text-sm">
-            {AGENTS[agentKey].name}
-            {AGENTS[agentKey].emoji}
-          </div>
+          <div className="px-2 py-2 text-sm">{AGENTS[agentKey].emoji}</div>
 
           <div className="px-2 py-2 text-sm">
             {ddlEditingId === node.id ? (
@@ -284,7 +323,7 @@ export default function TasksPage() {
                 autoFocus
                 type="date"
                 defaultValue={parsed.ddl || ""}
-                className="h-7 rounded border bg-transparent px-1 text-xs"
+                className="h-7 rounded border border-slate-300 bg-white px-1 text-xs"
                 onBlur={async (e) => {
                   const v = e.target.value || null;
                   await updateTaskDDL(node, v);
@@ -300,14 +339,11 @@ export default function TasksPage() {
                 }}
               />
             ) : parsed.ddl ? (
-              <button
-                className={`rounded-md px-2 py-1 text-xs ${ddlColor(parsed.ddl)}`}
-                onClick={() => setDdlEditingId(node.id)}
-              >
+              <button className={`rounded-md px-2 py-1 text-xs ${ddlBadgeClass(parsed.ddl)}`} onClick={() => setDdlEditingId(node.id)}>
                 {parsed.ddl}
               </button>
             ) : (
-              <button className="text-xs text-gray-400" onClick={() => setDdlEditingId(node.id)}>
+              <button className="text-xs text-slate-400" onClick={() => setDdlEditingId(node.id)}>
                 + 设置截止日
               </button>
             )}
@@ -318,23 +354,21 @@ export default function TasksPage() {
           </div>
 
           <div className="px-2 py-2">
-            <button className="text-muted-foreground hover:text-red-400 text-lg leading-none" title="删除" onClick={() => deleteTask(node.id)}>
+            <button className="text-slate-400 hover:text-red-500 text-lg leading-none" title="删除" onClick={() => deleteTask(node.id)}>
               ×
             </button>
           </div>
         </div>,
       );
 
-      if (!collapsed && node.children.length > 0) {
-        rows.push(...renderRows(node.children, level + 1));
-      }
+      if (!collapsed && node.children.length > 0) rows.push(...renderRows(node.children, level + 1));
     });
 
     return rows;
   };
 
   return (
-    <div className="relative p-6 pr-[350px]">
+    <div className="relative min-h-screen bg-[#fafafa] p-6 pr-[350px] text-slate-900">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {FILTERS.map((f) => (
@@ -346,22 +380,48 @@ export default function TasksPage() {
         <Button onClick={() => setShowCreateModal(true)}>+ 添加任务</Button>
       </div>
 
-      <div className="rounded-lg border border-white/10 overflow-hidden">
-        <div className="grid grid-cols-[36px_minmax(220px,1fr)_90px_170px_110px_48px] bg-white/5 text-xs text-muted-foreground">
-          <div className="px-2 py-2"></div>
-          <div className="px-2 py-2">任务</div>
-          <div className="px-2 py-2">负责人</div>
-          <div className="px-2 py-2">DDL</div>
-          <div className="px-2 py-2">优先级</div>
-          <div className="px-2 py-2">操作</div>
+      {weeklyDDLTasks.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-3 text-base font-semibold">⏰ 本周截止</h2>
+          <div className="flex flex-wrap gap-3">
+            {weeklyDDLTasks.map(({ task, ddl }) => {
+              const agent = AGENTS[normalizeAssignee(task.assignee)];
+              return (
+                <button
+                  key={task.id}
+                  className="w-[220px] rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm hover:border-violet-300"
+                  onClick={() => setSelectedTaskId(task.id)}
+                >
+                  <div className="mb-2 line-clamp-2 text-sm font-medium">{task.title}</div>
+                  <div className="flex items-center justify-between">
+                    <span className={`rounded-md px-2 py-1 text-xs ${ddlBadgeClass(ddl)}`}>{ddl}</span>
+                    <span className="text-lg">{agent.emoji}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <section>
+        <h2 className="mb-3 text-base font-semibold">📋 所有任务</h2>
+        <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+          <div className="grid grid-cols-[36px_minmax(220px,1fr)_90px_130px_110px_48px] bg-slate-50 text-xs text-slate-500">
+            <div className="px-2 py-2"></div>
+            <div className="px-2 py-2">任务</div>
+            <div className="px-2 py-2">负责人</div>
+            <div className="px-2 py-2">DDL</div>
+            <div className="px-2 py-2">优先级</div>
+            <div className="px-2 py-2">操作</div>
+          </div>
+          <div>{visibleTree.length ? renderRows(visibleTree) : <div className="p-6 text-sm text-slate-500">暂无任务</div>}</div>
         </div>
+      </section>
 
-        <div>{visibleTree.length ? renderRows(visibleTree) : <div className="p-6 text-sm text-muted-foreground">暂无任务</div>}</div>
-      </div>
-
-      <aside className="fixed right-0 top-0 h-screen w-[320px] border-l border-white/10 bg-background/95 p-4 overflow-y-auto">
+      <aside className="fixed right-0 top-0 h-screen w-[320px] border-l border-slate-200 bg-white p-4 overflow-y-auto">
         {!selectedTask ? (
-          <div className="text-sm text-muted-foreground mt-10">点击任务标题查看详情</div>
+          <div className="text-sm text-slate-500 mt-10">点击任务标题查看详情</div>
         ) : (
           <div className="space-y-4">
             <div>
@@ -394,9 +454,9 @@ export default function TasksPage() {
 
             <div className="space-y-3 text-sm">
               <label className="block">
-                <span className="mb-1 block text-xs text-muted-foreground">状态</span>
+                <span className="mb-1 block text-xs text-slate-500">状态</span>
                 <select
-                  className="w-full h-9 rounded-md border bg-background px-2"
+                  className="w-full h-9 rounded-md border border-slate-300 bg-white px-2"
                   value={normalizeStatus(selectedTask.status)}
                   onChange={(e) => patchTask(selectedTask.id, { status: e.target.value })}
                 >
@@ -408,9 +468,9 @@ export default function TasksPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs text-muted-foreground">Assignee</span>
+                <span className="mb-1 block text-xs text-slate-500">Assignee</span>
                 <select
-                  className="w-full h-9 rounded-md border bg-background px-2"
+                  className="w-full h-9 rounded-md border border-slate-300 bg-white px-2"
                   value={normalizeAssignee(selectedTask.assignee)}
                   onChange={(e) => patchTask(selectedTask.id, { assignee: e.target.value })}
                 >
@@ -424,9 +484,9 @@ export default function TasksPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs text-muted-foreground">优先级</span>
+                <span className="mb-1 block text-xs text-slate-500">优先级</span>
                 <select
-                  className="w-full h-9 rounded-md border bg-background px-2"
+                  className="w-full h-9 rounded-md border border-slate-300 bg-white px-2"
                   value={selectedTask.priority || "medium"}
                   onChange={(e) => patchTask(selectedTask.id, { priority: e.target.value })}
                 >
@@ -437,7 +497,7 @@ export default function TasksPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs text-muted-foreground">DDL</span>
+                <span className="mb-1 block text-xs text-slate-500">DDL</span>
                 <Input
                   type="date"
                   value={parseDDL(selectedTask.description || "").ddl || ""}
@@ -450,9 +510,9 @@ export default function TasksPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs text-muted-foreground">描述</span>
+                <span className="mb-1 block text-xs text-slate-500">描述</span>
                 <textarea
-                  className="w-full min-h-28 rounded-md border bg-background px-3 py-2"
+                  className="w-full min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2"
                   defaultValue={parseDDL(selectedTask.description || "").text}
                   onBlur={async (e) => {
                     const parsed = parseDDL(selectedTask.description || "");
@@ -474,13 +534,13 @@ export default function TasksPage() {
                 {selectedChildren.map((child) => (
                   <button
                     key={child.id}
-                    className="block w-full rounded border border-white/10 px-2 py-1 text-left text-sm hover:bg-white/5"
+                    className="block w-full rounded border border-slate-200 px-2 py-1 text-left text-sm hover:bg-slate-50"
                     onClick={() => setSelectedTaskId(child.id)}
                   >
                     {child.title}
                   </button>
                 ))}
-                {!selectedChildren.length && <div className="text-xs text-muted-foreground">暂无子任务</div>}
+                {!selectedChildren.length && <div className="text-xs text-slate-500">暂无子任务</div>}
               </div>
               {addingSubtask && (
                 <div className="mt-2 flex gap-2">
@@ -492,7 +552,7 @@ export default function TasksPage() {
               )}
             </div>
 
-            <div className="border-t border-white/10 pt-3 text-xs text-muted-foreground">
+            <div className="border-t border-slate-200 pt-3 text-xs text-slate-500">
               创建时间：{selectedTask.created_at ? new Date(selectedTask.created_at).toLocaleString() : "-"}
             </div>
           </div>
@@ -500,20 +560,20 @@ export default function TasksPage() {
       </aside>
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-40 bg-black/60 flex items-center justify-center p-4">
-          <form onSubmit={onCreateTask} className="w-full max-w-lg rounded-xl border border-white/10 bg-background p-5 space-y-4">
+        <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4">
+          <form onSubmit={onCreateTask} className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 space-y-4">
             <h2 className="text-lg font-semibold">添加任务</h2>
 
             <label className="block">
-              <span className="mb-1 block text-xs text-muted-foreground">标题 *</span>
+              <span className="mb-1 block text-xs text-slate-500">标题 *</span>
               <Input required value={newTask.title} onChange={(e) => setNewTask((s) => ({ ...s, title: e.target.value }))} />
             </label>
 
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
-                <span className="mb-1 block text-xs text-muted-foreground">Assignee</span>
+                <span className="mb-1 block text-xs text-slate-500">Assignee</span>
                 <select
-                  className="w-full h-9 rounded-md border bg-background px-2"
+                  className="w-full h-9 rounded-md border border-slate-300 bg-white px-2"
                   value={newTask.assignee}
                   onChange={(e) => setNewTask((s) => ({ ...s, assignee: e.target.value as AgentKey }))}
                 >
@@ -527,9 +587,9 @@ export default function TasksPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs text-muted-foreground">优先级</span>
+                <span className="mb-1 block text-xs text-slate-500">优先级</span>
                 <select
-                  className="w-full h-9 rounded-md border bg-background px-2"
+                  className="w-full h-9 rounded-md border border-slate-300 bg-white px-2"
                   value={newTask.priority}
                   onChange={(e) => setNewTask((s) => ({ ...s, priority: e.target.value }))}
                 >
@@ -541,23 +601,23 @@ export default function TasksPage() {
             </div>
 
             <label className="block">
-              <span className="mb-1 block text-xs text-muted-foreground">DDL</span>
+              <span className="mb-1 block text-xs text-slate-500">DDL</span>
               <Input type="date" value={newTask.ddl} onChange={(e) => setNewTask((s) => ({ ...s, ddl: e.target.value }))} />
             </label>
 
             <label className="block">
-              <span className="mb-1 block text-xs text-muted-foreground">描述</span>
+              <span className="mb-1 block text-xs text-slate-500">描述</span>
               <textarea
-                className="w-full min-h-24 rounded-md border bg-background px-3 py-2"
+                className="w-full min-h-24 rounded-md border border-slate-300 bg-white px-3 py-2"
                 value={newTask.description}
                 onChange={(e) => setNewTask((s) => ({ ...s, description: e.target.value }))}
               />
             </label>
 
             <label className="block">
-              <span className="mb-1 block text-xs text-muted-foreground">父任务（可选）</span>
+              <span className="mb-1 block text-xs text-slate-500">父任务（可选）</span>
               <select
-                className="w-full h-9 rounded-md border bg-background px-2"
+                className="w-full h-9 rounded-md border border-slate-300 bg-white px-2"
                 value={newTask.parent_id}
                 onChange={(e) => setNewTask((s) => ({ ...s, parent_id: e.target.value }))}
               >
