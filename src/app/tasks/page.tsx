@@ -78,6 +78,48 @@ function AssigneeChip({ assignee }: { assignee?: string }) {
   );
 }
 
+function parseDDL(description?: string): string | null {
+  if (!description) return null;
+  const m = description.match(/DDL:(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : null;
+}
+
+function DDLBadge({ description }: { description?: string }) {
+  const ddl = parseDDL(description);
+  if (!ddl) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(ddl);
+  const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  let cls = "bg-slate-700 text-slate-200";
+  let label = `📅 ${ddl}`;
+  if (diffDays < 0) {
+    cls = "bg-red-900 text-red-200";
+    label = `🔴 逾期 ${ddl}`;
+  } else if (diffDays <= 3) {
+    cls = "bg-red-700 text-red-100";
+    label = `🚨 ${diffDays}天 ${ddl}`;
+  } else if (diffDays <= 7) {
+    cls = "bg-orange-700 text-orange-100";
+    label = `⚠️ ${diffDays}天 ${ddl}`;
+  } else if (diffDays <= 30) {
+    cls = "bg-yellow-800 text-yellow-100";
+    label = `📅 ${diffDays}天 ${ddl}`;
+  }
+
+  return (
+    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-mono ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
+function cleanDescription(description?: string): string {
+  if (!description) return "";
+  return description.replace(/DDL:\d{4}-\d{2}-\d{2}\s*\|?\s*/, "").trim();
+}
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
@@ -215,11 +257,12 @@ export default function TasksPage() {
               </span>
               <AssigneeChip assignee={task.assignee} />
               <StatusBadge status={task.status} />
+              <DDLBadge description={task.description} />
             </div>
             {/* Description shown below title */}
             {task.description && editingId !== task.id && (
               <p className="mt-1 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap break-words pl-0">
-                {task.description}
+                {cleanDescription(task.description)}
               </p>
             )}
           </div>
