@@ -1748,7 +1748,7 @@ export default function PixelOfficePage() {
       </div>
 
       {/* Canvas */}
-      <div ref={containerRef} className="flex-1 relative overflow-hidden bg-[#1a1a2e]">
+      <div ref={containerRef} className="flex-1 relative overflow-hidden bg-[#f0eff5]">
         <canvas ref={canvasRef}
           onMouseMove={handleMouseMove}
           onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}
@@ -1760,7 +1760,7 @@ export default function PixelOfficePage() {
           className="w-full h-full"
           style={{ touchAction: 'none' }} />
         {!officeReady && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#1a1a2e]/85 pointer-events-none">
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#f0eff5]/85 pointer-events-none">
             <div className="px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--card)] text-sm text-[var(--text-muted)]">
               {t('common.loading')}
             </div>
