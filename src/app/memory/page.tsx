@@ -137,7 +137,7 @@ export default function MemoryPage() {
   const currentFileMeta = files.find((f) => f.path === currentFile);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-full overflow-hidden bg-background">
       <aside className="w-[280px] border-r border-border flex flex-col shrink-0">
         <div className="p-4 border-b border-border space-y-3">
           <h1 className="text-lg font-semibold">Memory</h1>
