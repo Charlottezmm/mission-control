@@ -1,20 +1,20 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Task {
   id: string;
   title: string;
   status: string;
-  assignee?: string;
-  category?: string;
-  priority?: string;
-  description?: string;
+  assignee?: string | null;
+  category?: string | null;
+  priority?: string | null;
+  description?: string | null;
+  created_at?: string;
+  updated_at?: string;
   parent_id?: string | null;
 }
 
@@ -22,23 +22,52 @@ interface TaskNode extends Task {
   children: TaskNode[];
 }
 
-const ASSIGNEES = ["Samantha", "Beth", "Luna", "Nova", "Pixel", "Charlotte"];
-const STATUS_OPTIONS = ["backlog", "in-progress", "done"];
+const AGENTS = {
+  main: { name: "Samantha", emoji: "🦐" },
+  writer: { name: "Luna", emoji: "✍️" },
+  marketing: { name: "Nova", emoji: "💡" },
+  techlead: { name: "Beth", emoji: "🔧" },
+  video: { name: "Pixel", emoji: "🎬" },
+} as const;
 
-const ASSIGNEE_DOT: Record<string, string> = {
-  Samantha: "bg-violet-500",
-  Beth: "bg-blue-500",
-  Luna: "bg-pink-500",
-  Nova: "bg-orange-500",
-  Pixel: "bg-green-500",
-  Charlotte: "bg-amber-500",
-};
+type AgentKey = keyof typeof AGENTS;
 
-function normalizeStatus(s: string) {
-  const lower = s?.toLowerCase().replace(/_/g, "-") || "backlog";
-  if (lower.includes("progress") || lower.includes("active")) return "in-progress";
-  if (lower.includes("done") || lower.includes("complete")) return "done";
+const FILTERS = ["all", "backlog", "in-progress", "done"] as const;
+
+function parseDDL(desc: string): { ddl: string | null; text: string } {
+  const m = (desc || "").match(/DDL:(\d{4}-\d{2}-\d{2})\s*\|?\s*/);
+  return m ? { ddl: m[1], text: desc.replace(m[0], "").trim() } : { ddl: null, text: desc || "" };
+}
+
+function serializeDesc(ddl: string | null, text: string): string {
+  return ddl ? `DDL:${ddl} | ${text}` : text;
+}
+
+function ddlColor(ddl: string | null): string {
+  if (!ddl) return "text-gray-400";
+  const days = Math.ceil((new Date(ddl).getTime() - Date.now()) / 86400000);
+  if (days <= 3) return "bg-red-500/20 text-red-400 border border-red-500/30";
+  if (days <= 7) return "bg-orange-500/20 text-orange-400 border border-orange-500/30";
+  if (days <= 30) return "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30";
+  return "bg-gray-500/20 text-gray-400 border border-gray-500/30";
+}
+
+function normalizeStatus(status?: string | null) {
+  const s = (status || "backlog").toLowerCase().replace(/_/g, "-");
+  if (s.includes("progress") || s.includes("active")) return "in-progress";
+  if (s.includes("done") || s.includes("complete")) return "done";
+  if (s.includes("block")) return "blocked";
   return "backlog";
+}
+
+function normalizeAssignee(value?: string | null): AgentKey {
+  const v = (value || "").trim();
+  if (!v) return "main";
+  if ((Object.keys(AGENTS) as AgentKey[]).includes(v as AgentKey)) return v as AgentKey;
+  const entry = (Object.entries(AGENTS) as [AgentKey, (typeof AGENTS)[AgentKey]][]).find(
+    ([, a]) => a.name.toLowerCase() === v.toLowerCase(),
+  );
+  return entry?.[0] || "main";
 }
 
 function buildTree(tasks: Task[]): TaskNode[] {
@@ -50,93 +79,35 @@ function buildTree(tasks: Task[]): TaskNode[] {
   });
 
   const makeNodes = (parentId: string | null): TaskNode[] => {
-    const list = (byParent.get(parentId) || []).sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    const list = (byParent.get(parentId) || []).sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
     return list.map((task) => ({ ...task, children: makeNodes(task.id) }));
   };
 
   return makeNodes(null);
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const normalized = normalizeStatus(status);
-  if (normalized === "in-progress") {
-    return <Badge className="bg-green-600 hover:bg-green-600 text-white text-xs">in-progress</Badge>;
-  }
-  if (normalized === "done") {
-    return <Badge className="bg-emerald-800 hover:bg-emerald-800 text-white text-xs">done</Badge>;
-  }
-  return <Badge className="bg-muted text-muted-foreground hover:bg-muted text-xs">backlog</Badge>;
-}
-
-function AssigneeChip({ assignee }: { assignee?: string }) {
-  if (!assignee) return null;
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs">
-      <span className={`h-2 w-2 rounded-full ${ASSIGNEE_DOT[assignee] || "bg-slate-400"}`} />
-      {assignee}
-    </span>
-  );
-}
-
-function parseDDL(description?: string): string | null {
-  if (!description) return null;
-  const m = description.match(/DDL:(\d{4}-\d{2}-\d{2})/);
-  return m ? m[1] : null;
-}
-
-function DDLBadge({ description }: { description?: string }) {
-  const ddl = parseDDL(description);
-  if (!ddl) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due = new Date(ddl);
-  const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-  let cls = "bg-slate-700 text-slate-200";
-  let label = `📅 ${ddl}`;
-  if (diffDays < 0) {
-    cls = "bg-red-900 text-red-200";
-    label = `🔴 逾期 ${ddl}`;
-  } else if (diffDays <= 3) {
-    cls = "bg-red-700 text-red-100";
-    label = `🚨 ${diffDays}天 ${ddl}`;
-  } else if (diffDays <= 7) {
-    cls = "bg-orange-700 text-orange-100";
-    label = `⚠️ ${diffDays}天 ${ddl}`;
-  } else if (diffDays <= 30) {
-    cls = "bg-yellow-800 text-yellow-100";
-    label = `📅 ${diffDays}天 ${ddl}`;
-  }
-
-  return (
-    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-mono ${cls}`}>
-      {label}
-    </span>
-  );
-}
-
-function cleanDescription(description?: string): string {
-  if (!description) return "";
-  return description.replace(/DDL:\d{4}-\d{2}-\d{2}\s*\|?\s*/, "").trim();
-}
-
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [collapsedRoots, setCollapsedRoots] = useState<Record<string, boolean>>({});
+  const [ddlEditingId, setDdlEditingId] = useState<string | null>(null);
 
-  const [title, setTitle] = useState("");
-  const [assignee, setAssignee] = useState(ASSIGNEES[0]);
-  const [priority, setPriority] = useState("medium");
-  const [category, setCategory] = useState("General");
-  const [description, setDescription] = useState("");
-  const [parentId, setParentId] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
-  const [createExpanded, setCreateExpanded] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: "",
+    assignee: "main" as AgentKey,
+    priority: "medium",
+    ddl: "",
+    description: "",
+    parent_id: "",
+  });
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ title: "", status: "backlog", assignee: "", description: "" });
-
-  const [expandedRoots, setExpandedRoots] = useState<Record<string, boolean>>({});
-  const [doneOpen, setDoneOpen] = useState(false);
+  const [titleEditing, setTitleEditing] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [addingSubtask, setAddingSubtask] = useState(false);
+  const [subtaskTitle, setSubtaskTitle] = useState("");
 
   const load = async () => {
     const r = await fetch("/api/tasks", { cache: "no-store" });
@@ -147,354 +118,463 @@ export default function TasksPage() {
 
   useEffect(() => {
     load().catch(() => {});
-    const iv = setInterval(() => load().catch(() => {}), 10000);
-    return () => clearInterval(iv);
   }, []);
 
-  const rootTree = useMemo(() => buildTree(tasks), [tasks]);
-  const rootOptions = useMemo(() => rootTree.map((r) => ({ id: r.id, title: r.title })), [rootTree]);
+  const taskById = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
+  const tree = useMemo(() => buildTree(tasks), [tasks]);
+  const topLevelTasks = useMemo(() => tasks.filter((t) => !t.parent_id), [tasks]);
 
   useEffect(() => {
-    setExpandedRoots((prev) => {
+    setCollapsedRoots((prev) => {
       const next = { ...prev };
-      for (const root of rootTree) {
-        if (!(root.id in next)) next[root.id] = true;
-      }
+      tree.forEach((t) => {
+        if (!(t.id in next)) next[t.id] = false;
+      });
       return next;
     });
-  }, [rootTree]);
+  }, [tree]);
 
-  const groupedRoots = useMemo(() => {
-    const grouped: Record<string, TaskNode[]> = { "in-progress": [], backlog: [], done: [] };
-    for (const root of rootTree) {
-      grouped[normalizeStatus(root.status)].push(root);
-    }
-    return grouped;
-  }, [rootTree]);
+  const visibleTree = useMemo(() => {
+    if (filter === "all") return tree;
+    return tree.filter((n) => normalizeStatus(n.status) === filter);
+  }, [tree, filter]);
 
-  const stats = useMemo(() => {
-    const rootCount = rootTree.length;
-    const inProgressCount = tasks.filter((t) => normalizeStatus(t.status) === "in-progress").length;
-    const doneCount = tasks.filter((t) => normalizeStatus(t.status) === "done").length;
-    return { rootCount, inProgressCount, doneCount };
-  }, [tasks, rootTree]);
+  const selectedTask = selectedTaskId ? taskById.get(selectedTaskId) || null : null;
+  const selectedChildren = useMemo(
+    () => (selectedTask ? tasks.filter((t) => t.parent_id === selectedTask.id) : []),
+    [selectedTask, tasks],
+  );
 
-  const onCreate = async (e: FormEvent) => {
+  useEffect(() => {
+    if (selectedTask) setTitleDraft(selectedTask.title || "");
+  }, [selectedTask?.id]);
+
+  const patchTask = async (id: string, updates: Partial<Task>) => {
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+    const r = await fetch("/api/tasks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...updates }),
+    });
+    if (!r.ok) await load();
+  };
+
+  const deleteTask = async (id: string) => {
+    if (!window.confirm("删除这个任务？")) return;
+    await fetch(`/api/tasks?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (selectedTaskId === id) setSelectedTaskId(null);
+    await load();
+  };
+
+  const updateTaskDDL = async (task: Task, ddl: string | null) => {
+    const parsed = parseDDL(task.description || "");
+    const nextDesc = serializeDesc(ddl, parsed.text);
+    await patchTask(task.id, { description: nextDesc || null });
+  };
+
+  const toggleDone = async (task: Task) => {
+    const current = normalizeStatus(task.status);
+    const next = current === "done" ? "backlog" : "done";
+    await patchTask(task.id, { status: next });
+  };
+
+  const onCreateTask = async (e: FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
-    setSubmitting(true);
+    if (!newTask.title.trim()) return;
+    setCreating(true);
     try {
       await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: title.trim(),
-          assignee,
-          priority,
-          category,
-          description: description.trim() || null,
-          parent_id: parentId || null,
+          title: newTask.title.trim(),
+          assignee: newTask.assignee,
+          priority: newTask.priority,
+          description: serializeDesc(newTask.ddl || null, newTask.description.trim()) || null,
+          parent_id: newTask.parent_id || null,
           status: "backlog",
         }),
       });
-      setTitle("");
-      setDescription("");
-      setParentId("");
-      setCreateExpanded(false);
+      setShowCreateModal(false);
+      setNewTask({ title: "", assignee: "main", priority: "medium", ddl: "", description: "", parent_id: "" });
       await load();
     } finally {
-      setSubmitting(false);
+      setCreating(false);
     }
   };
 
-  const startEdit = (task: Task) => {
-    setEditingId(task.id);
-    setEditForm({
-      title: task.title || "",
-      status: normalizeStatus(task.status),
-      assignee: task.assignee || "",
-      description: task.description || "",
-    });
-  };
-
-  const saveEdit = async () => {
-    if (!editingId) return;
+  const onCreateSubtask = async () => {
+    if (!selectedTask || !subtaskTitle.trim()) return;
     await fetch("/api/tasks", {
-      method: "PATCH",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: editingId, ...editForm }),
+      body: JSON.stringify({
+        title: subtaskTitle.trim(),
+        assignee: normalizeAssignee(selectedTask.assignee),
+        priority: selectedTask.priority || "medium",
+        parent_id: selectedTask.id,
+        status: "backlog",
+      }),
     });
-    setEditingId(null);
+    setAddingSubtask(false);
+    setSubtaskTitle("");
     await load();
   };
 
-  const deleteTask = async (id: string) => {
-    const ok = window.confirm("Delete this task?");
-    if (!ok) return;
-    await fetch(`/api/tasks?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-    await load();
+  const priorityBadgeClass = (p?: string | null) => {
+    if (p === "high") return "bg-red-500/20 text-red-300 border-red-500/30";
+    if (p === "low") return "bg-slate-500/20 text-slate-300 border-slate-500/30";
+    return "bg-blue-500/20 text-blue-300 border-blue-500/30";
   };
 
-  const renderTask = (task: TaskNode, level: number, isLast: boolean, isRoot = false) => {
-    const normalized = normalizeStatus(task.status);
-    const muted = normalized === "done";
-    const rowClass = isRoot
-      ? "rounded-md border bg-muted/40 px-3 py-2.5"
-      : "rounded-md px-2 py-1.5";
+  const renderRows = (nodes: TaskNode[], level = 0) => {
+    const rows: ReactNode[] = [];
 
-    return (
-      <div key={task.id} className="space-y-1">
+    nodes.forEach((node) => {
+      const parsed = parseDDL(node.description || "");
+      const agentKey = normalizeAssignee(node.assignee);
+      const childCount = node.children.length;
+      const collapsed = !!collapsedRoots[node.id];
+
+      rows.push(
         <div
-          className={`${rowClass} ${muted ? "text-muted-foreground" : ""} flex items-start justify-between gap-3`}
-          style={{ marginLeft: isRoot ? 0 : `${level * 24}px` }}
+          key={node.id}
+          className={`grid grid-cols-[36px_minmax(220px,1fr)_90px_170px_110px_48px] items-center border-b border-white/5 hover:bg-white/5 ${
+            selectedTaskId === node.id ? "bg-white/10" : ""
+          }`}
         >
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              {!isRoot && <span className="text-xs text-muted-foreground w-5 shrink-0">{isLast ? "└─" : "├─"}</span>}
-              <span className={`${isRoot ? "font-semibold" : "font-medium"} text-sm break-words`}>
-                {isRoot && normalized === "in-progress" ? "🔥 " : ""}
-                {task.title}
-              </span>
-              <AssigneeChip assignee={task.assignee} />
-              <StatusBadge status={task.status} />
-              <DDLBadge description={task.description} />
-            </div>
-            {/* Description shown below title */}
-            {task.description && editingId !== task.id && (
-              <p className="mt-1 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap break-words pl-0">
-                {cleanDescription(task.description)}
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => startEdit(task)}>
-              Edit
-            </Button>
-            {isRoot ? (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 px-2 text-xs"
-                onClick={() => {
-                  setCreateExpanded(true);
-                  setParentId(task.id);
-                }}
+          <div className="px-2 py-2 flex items-center gap-1" style={{ paddingLeft: 8 + level * 20 }}>
+            {childCount > 0 ? (
+              <button
+                className="text-xs text-muted-foreground w-4"
+                onClick={() => setCollapsedRoots((s) => ({ ...s, [node.id]: !s[node.id] }))}
               >
-                +子任务
-              </Button>
+                {collapsed ? "▶" : "▼"}
+              </button>
             ) : (
-              <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" onClick={() => deleteTask(task.id)}>
-                Delete
-              </Button>
+              <span className="w-4" />
+            )}
+            <input
+              type="checkbox"
+              checked={normalizeStatus(node.status) === "done"}
+              onChange={() => toggleDone(node)}
+              className="h-4 w-4"
+            />
+          </div>
+
+          <button className="px-2 py-2 text-left text-sm" onClick={() => setSelectedTaskId(node.id)}>
+            <span className={normalizeStatus(node.status) === "done" ? "line-through text-muted-foreground" : ""}>{node.title}</span>
+            {childCount > 0 && <span className="ml-2 text-xs text-muted-foreground">({childCount} 子任务)</span>}
+          </button>
+
+          <div className="px-2 py-2 text-sm">
+            {AGENTS[agentKey].name}
+            {AGENTS[agentKey].emoji}
+          </div>
+
+          <div className="px-2 py-2 text-sm">
+            {ddlEditingId === node.id ? (
+              <input
+                autoFocus
+                type="date"
+                defaultValue={parsed.ddl || ""}
+                className="h-7 rounded border bg-transparent px-1 text-xs"
+                onBlur={async (e) => {
+                  const v = e.target.value || null;
+                  await updateTaskDDL(node, v);
+                  setDdlEditingId(null);
+                }}
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter") {
+                    const v = (e.target as HTMLInputElement).value || null;
+                    await updateTaskDDL(node, v);
+                    setDdlEditingId(null);
+                  }
+                  if (e.key === "Escape") setDdlEditingId(null);
+                }}
+              />
+            ) : parsed.ddl ? (
+              <button
+                className={`rounded-md px-2 py-1 text-xs ${ddlColor(parsed.ddl)}`}
+                onClick={() => setDdlEditingId(node.id)}
+              >
+                {parsed.ddl}
+              </button>
+            ) : (
+              <button className="text-xs text-gray-400" onClick={() => setDdlEditingId(node.id)}>
+                + 设置截止日
+              </button>
             )}
           </div>
-        </div>
 
-        {editingId === task.id && (
-          <div
-            className="rounded-md border bg-background p-4 space-y-3 max-w-2xl"
-            style={{ marginLeft: isRoot ? 0 : `${level * 24 + 24}px` }}
-          >
-            <Input
-              value={editForm.title}
-              onChange={(e) => setEditForm((s) => ({ ...s, title: e.target.value }))}
-              placeholder="Title"
-              className="h-8"
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <select
-                className="w-full h-8 rounded-md border bg-background px-2 text-sm"
-                value={editForm.status}
-                onChange={(e) => setEditForm((s) => ({ ...s, status: e.target.value }))}
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="w-full h-8 rounded-md border bg-background px-2 text-sm"
-                value={editForm.assignee}
-                onChange={(e) => setEditForm((s) => ({ ...s, assignee: e.target.value }))}
-              >
-                <option value="">Unassigned</option>
-                {ASSIGNEES.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <textarea
-              value={editForm.description}
-              onChange={(e) => setEditForm((s) => ({ ...s, description: e.target.value }))}
-              placeholder="Description（时间线、目标、备注...）"
-              rows={3}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            <div className="flex gap-2">
-              <Button size="sm" className="h-7 px-2 text-xs" onClick={saveEdit}>
-                Save
-              </Button>
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEditingId(null)}>
-                Cancel
-              </Button>
-            </div>
+          <div className="px-2 py-2 text-sm">
+            <Badge className={`capitalize border ${priorityBadgeClass(node.priority)}`}>{node.priority || "medium"}</Badge>
           </div>
-        )}
 
-        {task.children.length > 0 && (!isRoot || expandedRoots[task.id]) && (
-          <div className="space-y-1">
-            {task.children.map((child, idx) => renderTask(child, level + 1, idx === task.children.length - 1))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderGroup = (label: string, emoji: string, roots: TaskNode[], collapsible = false) => {
-    const open = !collapsible || doneOpen;
-    return (
-      <Card className="bg-card/80">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => collapsible && setDoneOpen((v) => !v)}
-              className={`text-sm font-semibold flex items-center gap-2 ${collapsible ? "cursor-pointer" : "cursor-default"}`}
-            >
-              {collapsible ? (open ? "▼" : "▶") : "•"} {emoji} {label}
-              <span className="text-xs text-muted-foreground">({roots.length})</span>
+          <div className="px-2 py-2">
+            <button className="text-muted-foreground hover:text-red-400" onClick={() => deleteTask(node.id)}>
+              ⋯
             </button>
           </div>
-          {open && (
-            <div className="space-y-2">
-              {roots.length === 0 && <p className="text-xs text-muted-foreground">No tasks</p>}
-              {roots.map((root) => (
-                <div key={root.id} className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setExpandedRoots((s) => ({ ...s, [root.id]: !s[root.id] }))}
-                      className="text-xs text-muted-foreground w-4"
-                    >
-                      {expandedRoots[root.id] ? "▼" : "▶"}
-                    </button>
-                    <div className="flex-1">{renderTask(root, 0, true, true)}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
+        </div>,
+      );
+
+      if (!collapsed && node.children.length > 0) {
+        rows.push(...renderRows(node.children, level + 1));
+      }
+    });
+
+    return rows;
   };
 
   return (
-    <div className="p-8 space-y-5">
-      <h1 className="text-2xl font-bold">Tasks</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card>
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground">父任务数</p>
-            <p className="text-xl font-semibold">{stats.rootCount}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground">进行中</p>
-            <p className="text-xl font-semibold text-green-600">{stats.inProgressCount}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <p className="text-xs text-muted-foreground">已完成</p>
-            <p className="text-xl font-semibold text-emerald-700">{stats.doneCount}</p>
-          </CardContent>
-        </Card>
+    <div className="relative p-6 pr-[350px]">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {FILTERS.map((f) => (
+            <Button key={f} variant={filter === f ? "default" : "outline"} size="sm" onClick={() => setFilter(f)}>
+              {f === "all" ? "全部" : f}
+            </Button>
+          ))}
+        </div>
+        <Button onClick={() => setShowCreateModal(true)}>+ 添加任务</Button>
       </div>
 
-      <ScrollArea className="h-[calc(100vh-24rem)] pr-2">
-        <div className="space-y-4">
-          {renderGroup("In Progress", "🔥", groupedRoots["in-progress"])}
-          {renderGroup("Backlog", "📋", groupedRoots.backlog)}
-          {renderGroup("Done", "✅", groupedRoots.done, true)}
+      <div className="rounded-lg border border-white/10 overflow-hidden">
+        <div className="grid grid-cols-[36px_minmax(220px,1fr)_90px_170px_110px_48px] bg-white/5 text-xs text-muted-foreground">
+          <div className="px-2 py-2">状态</div>
+          <div className="px-2 py-2">任务</div>
+          <div className="px-2 py-2">负责人</div>
+          <div className="px-2 py-2">DDL</div>
+          <div className="px-2 py-2">优先级</div>
+          <div className="px-2 py-2">操作</div>
         </div>
-      </ScrollArea>
 
-      <Card>
-        <CardContent className="p-4 space-y-3">
-          <form onSubmit={onCreate} className="space-y-3">
-            <div className="flex gap-2 items-center">
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Add a new task..."
-                required
-                className="h-9"
-              />
-              <Button type="submit" disabled={submitting} className="h-9">
-                {submitting ? "Adding..." : "Add Task"}
-              </Button>
-              <Button type="button" variant="outline" className="h-9 px-3" onClick={() => setCreateExpanded((v) => !v)}>
-                {createExpanded ? "−" : "+"}
-              </Button>
+        <div>{visibleTree.length ? renderRows(visibleTree) : <div className="p-6 text-sm text-muted-foreground">暂无任务</div>}</div>
+      </div>
+
+      <aside className="fixed right-0 top-0 h-screen w-[320px] border-l border-white/10 bg-background/95 p-4 overflow-y-auto">
+        {!selectedTask ? (
+          <div className="text-sm text-muted-foreground mt-10">点击任务标题查看详情</div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              {!titleEditing ? (
+                <button className="text-left text-lg font-semibold" onClick={() => setTitleEditing(true)}>
+                  {selectedTask.title}
+                </button>
+              ) : (
+                <Input
+                  autoFocus
+                  value={titleDraft}
+                  onChange={(e) => setTitleDraft(e.target.value)}
+                  onBlur={async () => {
+                    setTitleEditing(false);
+                    if (titleDraft.trim() && titleDraft !== selectedTask.title) {
+                      await patchTask(selectedTask.id, { title: titleDraft.trim() });
+                    }
+                  }}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") {
+                      setTitleEditing(false);
+                      if (titleDraft.trim() && titleDraft !== selectedTask.title) {
+                        await patchTask(selectedTask.id, { title: titleDraft.trim() });
+                      }
+                    }
+                  }}
+                />
+              )}
             </div>
 
-            {createExpanded && (
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+            <div className="space-y-3 text-sm">
+              <label className="block">
+                <span className="mb-1 block text-xs text-muted-foreground">状态</span>
                 <select
-                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-                  value={assignee}
-                  onChange={(e) => setAssignee(e.target.value)}
+                  className="w-full h-9 rounded-md border bg-background px-2"
+                  value={normalizeStatus(selectedTask.status)}
+                  onChange={(e) => patchTask(selectedTask.id, { status: e.target.value })}
                 >
-                  {ASSIGNEES.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
+                  <option value="backlog">backlog</option>
+                  <option value="in-progress">in-progress</option>
+                  <option value="done">done</option>
+                  <option value="blocked">blocked</option>
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs text-muted-foreground">Assignee</span>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2"
+                  value={normalizeAssignee(selectedTask.assignee)}
+                  onChange={(e) => patchTask(selectedTask.id, { assignee: e.target.value })}
+                >
+                  {(Object.keys(AGENTS) as AgentKey[]).map((k) => (
+                    <option key={k} value={k}>
+                      {AGENTS[k].name}
+                      {AGENTS[k].emoji}
                     </option>
                   ))}
                 </select>
+              </label>
 
+              <label className="block">
+                <span className="mb-1 block text-xs text-muted-foreground">优先级</span>
                 <select
-                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
+                  className="w-full h-9 rounded-md border bg-background px-2"
+                  value={selectedTask.priority || "medium"}
+                  onChange={(e) => patchTask(selectedTask.id, { priority: e.target.value })}
                 >
-                  <option value="low">low</option>
-                  <option value="medium">medium</option>
                   <option value="high">high</option>
+                  <option value="medium">medium</option>
+                  <option value="low">low</option>
                 </select>
+              </label>
 
-                <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" className="h-9" />
+              <label className="block">
+                <span className="mb-1 block text-xs text-muted-foreground">DDL</span>
+                <Input
+                  type="date"
+                  value={parseDDL(selectedTask.description || "").ddl || ""}
+                  onChange={async (e) => {
+                    const parsed = parseDDL(selectedTask.description || "");
+                    const next = serializeDesc(e.target.value || null, parsed.text);
+                    await patchTask(selectedTask.id, { description: next || null });
+                  }}
+                />
+              </label>
 
+              <label className="block">
+                <span className="mb-1 block text-xs text-muted-foreground">描述</span>
+                <textarea
+                  className="w-full min-h-28 rounded-md border bg-background px-3 py-2"
+                  defaultValue={parseDDL(selectedTask.description || "").text}
+                  onBlur={async (e) => {
+                    const parsed = parseDDL(selectedTask.description || "");
+                    const next = serializeDesc(parsed.ddl, e.target.value.trim());
+                    await patchTask(selectedTask.id, { description: next || null });
+                  }}
+                />
+              </label>
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-medium">子任务</h3>
+                <Button size="sm" variant="outline" onClick={() => setAddingSubtask((v) => !v)}>
+                  +
+                </Button>
+              </div>
+              <div className="space-y-1">
+                {selectedChildren.map((child) => (
+                  <button
+                    key={child.id}
+                    className="block w-full rounded border border-white/10 px-2 py-1 text-left text-sm hover:bg-white/5"
+                    onClick={() => setSelectedTaskId(child.id)}
+                  >
+                    {child.title}
+                  </button>
+                ))}
+                {!selectedChildren.length && <div className="text-xs text-muted-foreground">暂无子任务</div>}
+              </div>
+              {addingSubtask && (
+                <div className="mt-2 flex gap-2">
+                  <Input value={subtaskTitle} onChange={(e) => setSubtaskTitle(e.target.value)} placeholder="子任务标题" />
+                  <Button size="sm" onClick={onCreateSubtask}>
+                    添加
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-white/10 pt-3 text-xs text-muted-foreground">
+              创建时间：{selectedTask.created_at ? new Date(selectedTask.created_at).toLocaleString() : "-"}
+            </div>
+          </div>
+        )}
+      </aside>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-40 bg-black/60 flex items-center justify-center p-4">
+          <form onSubmit={onCreateTask} className="w-full max-w-lg rounded-xl border border-white/10 bg-background p-5 space-y-4">
+            <h2 className="text-lg font-semibold">添加任务</h2>
+
+            <label className="block">
+              <span className="mb-1 block text-xs text-muted-foreground">标题 *</span>
+              <Input required value={newTask.title} onChange={(e) => setNewTask((s) => ({ ...s, title: e.target.value }))} />
+            </label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1 block text-xs text-muted-foreground">Assignee</span>
                 <select
-                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-                  value={parentId}
-                  onChange={(e) => setParentId(e.target.value)}
+                  className="w-full h-9 rounded-md border bg-background px-2"
+                  value={newTask.assignee}
+                  onChange={(e) => setNewTask((s) => ({ ...s, assignee: e.target.value as AgentKey }))}
                 >
-                  <option value="">Root task</option>
-                  {rootOptions.map((task) => (
-                    <option key={task.id} value={task.id}>
-                      {task.title}
+                  {(Object.keys(AGENTS) as AgentKey[]).map((k) => (
+                    <option key={k} value={k}>
+                      {AGENTS[k].name}
+                      {AGENTS[k].emoji}
                     </option>
                   ))}
                 </select>
+              </label>
 
-                <Input
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Description"
-                  className="h-9 md:col-span-5"
-                />
-              </div>
-            )}
+              <label className="block">
+                <span className="mb-1 block text-xs text-muted-foreground">优先级</span>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2"
+                  value={newTask.priority}
+                  onChange={(e) => setNewTask((s) => ({ ...s, priority: e.target.value }))}
+                >
+                  <option value="high">high</option>
+                  <option value="medium">medium</option>
+                  <option value="low">low</option>
+                </select>
+              </label>
+            </div>
+
+            <label className="block">
+              <span className="mb-1 block text-xs text-muted-foreground">DDL</span>
+              <Input type="date" value={newTask.ddl} onChange={(e) => setNewTask((s) => ({ ...s, ddl: e.target.value }))} />
+            </label>
+
+            <label className="block">
+              <span className="mb-1 block text-xs text-muted-foreground">描述</span>
+              <textarea
+                className="w-full min-h-24 rounded-md border bg-background px-3 py-2"
+                value={newTask.description}
+                onChange={(e) => setNewTask((s) => ({ ...s, description: e.target.value }))}
+              />
+            </label>
+
+            <label className="block">
+              <span className="mb-1 block text-xs text-muted-foreground">父任务（可选）</span>
+              <select
+                className="w-full h-9 rounded-md border bg-background px-2"
+                value={newTask.parent_id}
+                onChange={(e) => setNewTask((s) => ({ ...s, parent_id: e.target.value }))}
+              >
+                <option value="">无（顶级任务）</option>
+                {topLevelTasks.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+                取消
+              </Button>
+              <Button type="submit" disabled={creating}>
+                {creating ? "提交中..." : "提交"}
+              </Button>
+            </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 }
