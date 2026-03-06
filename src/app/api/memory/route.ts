@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   if (file) {
     const { data, error } = await supabaseAdmin
       .from("memory_files")
-      .select("path,content")
+      .select("path,content,synced_at")
       .eq("path", file)
       .single();
 
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ file, content: data.content });
+    return NextResponse.json({ file, content: data.content, synced_at: data.synced_at });
   }
 
   if (search) {
@@ -39,13 +39,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: results.slice(0, 200) });
   }
 
-  const { data, error } = await supabaseAdmin.from("memory_files").select("path").order("path", { ascending: true });
+  const { data, error } = await supabaseAdmin
+    .from("memory_files")
+    .select("path,synced_at")
+    .order("path", { ascending: true });
   if (error) return NextResponse.json({ files: [], error: error.message }, { status: 500 });
 
   const files = (data || []).map((f: any) => {
     const path = f.path as string;
     const name = path.split("/").pop() || path;
-    return { path, name, isDir: false };
+    return { path, name, isDir: false, synced_at: f.synced_at };
   });
 
   return NextResponse.json({ files });
