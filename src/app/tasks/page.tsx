@@ -197,7 +197,7 @@ export default function TasksPage() {
     const normalized = normalizeStatus(task.status);
     const muted = normalized === "done";
     const rowClass = isRoot
-      ? "rounded-md border bg-muted/40 px-3 py-2"
+      ? "rounded-md border bg-muted/40 px-3 py-2.5"
       : "rounded-md px-2 py-1.5";
 
     return (
@@ -216,6 +216,12 @@ export default function TasksPage() {
               <AssigneeChip assignee={task.assignee} />
               <StatusBadge status={task.status} />
             </div>
+            {/* Description shown below title */}
+            {task.description && editingId !== task.id && (
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap break-words pl-0">
+                {task.description}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
@@ -244,7 +250,7 @@ export default function TasksPage() {
 
         {editingId === task.id && (
           <div
-            className="rounded-md border bg-background p-3 space-y-2 max-w-2xl"
+            className="rounded-md border bg-background p-4 space-y-3 max-w-2xl"
             style={{ marginLeft: isRoot ? 0 : `${level * 24 + 24}px` }}
           >
             <Input
@@ -278,11 +284,12 @@ export default function TasksPage() {
                 ))}
               </select>
             </div>
-            <Input
+            <textarea
               value={editForm.description}
               onChange={(e) => setEditForm((s) => ({ ...s, description: e.target.value }))}
-              placeholder="Description"
-              className="h-8"
+              placeholder="Description（时间线、目标、备注...）"
+              rows={3}
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
             />
             <div className="flex gap-2">
               <Button size="sm" className="h-7 px-2 text-xs" onClick={saveEdit}>
