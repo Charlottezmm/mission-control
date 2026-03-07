@@ -53,3 +53,24 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({ files });
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    const { path, content } = await req.json();
+    if (!path || typeof content !== "string") {
+      return NextResponse.json({ error: "path and content required" }, { status: 400 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from("memory_files")
+      .upsert({ path, content, synced_at: new Date().toISOString() }, { onConflict: "path" });
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
+}

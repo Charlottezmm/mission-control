@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, FileText, ChevronDown, ChevronRight, Clock3, ArrowLeft, Brain, BookOpen, Lightbulb, Settings, Calendar as CalendarIcon } from "lucide-react";
+import { Search, FileText, ChevronDown, ChevronRight, Clock3, ArrowLeft, Brain, BookOpen, Lightbulb, Settings, Calendar as CalendarIcon, Pencil, Save, X, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface FileEntry {
@@ -60,6 +60,10 @@ export default function MemoryPage() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [expandedCats, setExpandedCats] = useState<Record<string, boolean>>({ daily: true });
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState("");
 
   useEffect(() => {
     fetch("/api/memory")
@@ -137,6 +141,48 @@ export default function MemoryPage() {
               </p>
             )}
           </div>
+          <div className="flex items-center gap-2">
+            {saveMsg && <span className="text-xs">{saveMsg}</span>}
+            {editing ? (
+              <>
+                <button
+                  onClick={async () => {
+                    setSaving(true); setSaveMsg("");
+                    try {
+                      const res = await fetch("/api/memory", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ path: currentFile, content: editContent }),
+                      });
+                      if (res.ok) {
+                        setContent(editContent);
+                        setEditing(false);
+                        setSaveMsg("✅");
+                        setTimeout(() => setSaveMsg(""), 2000);
+                      } else { setSaveMsg("❌"); }
+                    } catch { setSaveMsg("❌"); }
+                    finally { setSaving(false); }
+                  }}
+                  disabled={saving}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                  保存
+                </button>
+                <button onClick={() => setEditing(false)} className="p-1.5 rounded-lg hover:bg-slate-100">
+                  <X className="w-4 h-4 text-slate-400" />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => { setEditContent(content); setEditing(true); }}
+                className="p-1.5 rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                title="编辑"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Content */}
@@ -147,6 +193,13 @@ export default function MemoryPage() {
               <div className="h-4 bg-slate-100 rounded w-full" />
               <div className="h-4 bg-slate-100 rounded w-5/6" />
             </div>
+          ) : editing ? (
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full h-full p-4 md:p-6 text-sm font-mono text-slate-700 bg-slate-50/50 resize-none outline-none leading-relaxed"
+              spellCheck={false}
+            />
           ) : (
             <article className="p-4 md:p-6 prose prose-slate prose-sm max-w-none prose-pre:bg-slate-50 prose-pre:text-slate-800 prose-headings:text-slate-800">
               <ReactMarkdown>{content}</ReactMarkdown>
