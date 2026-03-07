@@ -9,7 +9,7 @@ const AGENTS = [
     name: "Samantha 🦐",
     icon: Sparkles,
     role: "主控 / PM",
-    model: "Claude Sonnet 4.5",
+    model: "Claude Sonnet 4.6",
     color: "text-rose-500",
     bg: "bg-rose-50",
     border: "border-rose-200",
@@ -74,7 +74,7 @@ const AGENTS = [
     bg: "bg-violet-50",
     border: "border-violet-200",
     description: "产品方向、最终验收、战略决策。数学本科在读，目标硅谷 Robotics 硕士。",
-    tasks: ["产品方向 & 验收", "Apple Developer 账号", "Flux 商业化决策", "人续 CRM"],
+    tasks: ["产品方向 & 验收", "Apple Developer 账号", "Flux 商业化决策", "Dalink"],
   },
 ];
 
