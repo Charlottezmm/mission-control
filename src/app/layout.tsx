@@ -14,11 +14,12 @@ export const metadata: Metadata = {
 };
 
 const mobileTabs = [
-  { href: "/", label: "Overview" },
-  { href: "/tasks", label: "Tasks" },
-  { href: "/office", label: "Office" },
-  { href: "/memory", label: "Memory" },
-  { href: "/team", label: "Team" },
+  { href: "/", label: "总览" },
+  { href: "/tasks", label: "任务" },
+  { href: "/calendar", label: "Cron" },
+  { href: "/office", label: "办公" },
+  { href: "/memory", label: "记忆" },
+  { href: "/team", label: "团队" },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
