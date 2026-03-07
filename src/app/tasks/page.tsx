@@ -1,6 +1,23 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Plus,
+  X,
+  Trash2,
+  Check,
+  Calendar,
+  ChevronDown,
+  ChevronRight,
+  AlertCircle,
+  Clock,
+  Circle,
+  CheckCircle2,
+  PauseCircle,
+  Loader2,
+  Flag,
+  MessageSquare,
+} from "lucide-react";
 
 interface Task {
   id: string;
@@ -19,28 +36,29 @@ const SUPABASE_BASE = "https://hkarpznjtrhehauvcphf.supabase.co/rest/v1/tasks";
 const SUPABASE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrYXJwem5qdHJoZWhhdXZjcGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MDAwNjQsImV4cCI6MjA4ODI3NjA2NH0.kXedOrtBkcXVc5s01MRA2sxdc1yDmFFi8TTskeqs0J0";
 
-const AGENTS: Record<string, { name: string; emoji: string; color: string }> = {
-  main: { name: "Samantha", emoji: "🦐", color: "bg-rose-100 text-rose-700 border-rose-200" },
-  writer: { name: "Luna", emoji: "✍️", color: "bg-purple-100 text-purple-700 border-purple-200" },
-  marketing: { name: "Nova", emoji: "💡", color: "bg-amber-100 text-amber-700 border-amber-200" },
-  techlead: { name: "Beth", emoji: "🔧", color: "bg-blue-100 text-blue-700 border-blue-200" },
-  video: { name: "Pixel", emoji: "🎬", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+const AGENTS: Record<string, { name: string; emoji: string; color: string; bg: string; border: string; text: string }> = {
+  main: { name: "Samantha", emoji: "🦐", color: "rose", bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-700" },
+  writer: { name: "Luna", emoji: "✍️", color: "purple", bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+  marketing: { name: "Nova", emoji: "💡", color: "amber", bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
+  techlead: { name: "Beth", emoji: "🔧", color: "blue", bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700" },
+  video: { name: "Pixel", emoji: "🎬", color: "emerald", bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700" },
+  charlotte: { name: "Charlotte", emoji: "👩", color: "violet", bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-700" },
 };
 
-const ASSIGNEE_KEYS = Object.keys(AGENTS);
+const ASSIGNEE_KEYS = ["main", "writer", "marketing", "techlead", "video", "charlotte"];
 
-const STATUS_CONFIG: Record<string, { label: string; dot: string; pill: string }> = {
-  backlog: { label: "待办", dot: "bg-slate-300", pill: "bg-slate-100 text-slate-600" },
-  "in-progress": { label: "进行中", dot: "bg-blue-500", pill: "bg-blue-50 text-blue-700" },
-  done: { label: "完成", dot: "bg-green-500", pill: "bg-green-50 text-green-700" },
-  blocked: { label: "阻塞", dot: "bg-red-500", pill: "bg-red-50 text-red-700" },
-  "on-hold": { label: "暂缓", dot: "bg-yellow-500", pill: "bg-yellow-50 text-yellow-700" },
+const STATUS_CFG: Record<string, { label: string; icon: typeof Circle; color: string; bg: string; text: string; border: string; bar: string }> = {
+  backlog: { label: "待办", icon: Circle, color: "slate", bg: "bg-slate-50", text: "text-slate-600", border: "border-slate-200", bar: "bg-slate-300" },
+  "in-progress": { label: "进行中", icon: Loader2, color: "blue", bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-200", bar: "bg-blue-500" },
+  done: { label: "完成", icon: CheckCircle2, color: "green", bg: "bg-green-50", text: "text-green-600", border: "border-green-200", bar: "bg-green-500" },
+  blocked: { label: "阻塞", icon: AlertCircle, color: "red", bg: "bg-red-50", text: "text-red-600", border: "border-red-200", bar: "bg-red-500" },
+  "on-hold": { label: "暂缓", icon: PauseCircle, color: "yellow", bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200", bar: "bg-yellow-500" },
 };
 
-const PRIORITY_CONFIG: Record<string, { label: string; dot: string; pill: string }> = {
-  high: { label: "高", dot: "bg-red-500", pill: "bg-red-50 text-red-600" },
-  medium: { label: "中", dot: "bg-orange-400", pill: "bg-orange-50 text-orange-600" },
-  low: { label: "低", dot: "bg-slate-400", pill: "bg-slate-50 text-slate-500" },
+const PRIORITY_CFG: Record<string, { label: string; color: string; bg: string; text: string; border: string }> = {
+  high: { label: "紧急", color: "red", bg: "bg-red-50", text: "text-red-600", border: "border-red-200" },
+  medium: { label: "中等", color: "orange", bg: "bg-orange-50", text: "text-orange-600", border: "border-orange-200" },
+  low: { label: "低", color: "slate", bg: "bg-slate-50", text: "text-slate-500", border: "border-slate-200" },
 };
 
 const FILTERS = ["all", "backlog", "in-progress", "done", "on-hold"] as const;
@@ -91,7 +109,7 @@ function daysUntil(ddl: string) {
 function ddlBadge(ddl: string | null) {
   if (!ddl) return { cls: "text-slate-400", text: "无DDL" };
   const d = daysUntil(ddl);
-  if (d < 0) return { cls: "text-red-600 font-semibold", text: `已过期 ${-d}天` };
+  if (d < 0) return { cls: "text-red-600 font-semibold", text: `已过期${-d}天` };
   if (d === 0) return { cls: "text-red-600 font-semibold", text: "今天截止" };
   if (d <= 3) return { cls: "text-red-500", text: `${d}天后` };
   if (d <= 7) return { cls: "text-orange-500", text: `${d}天后` };
@@ -105,11 +123,9 @@ function nextPriority(p?: string | null): string {
 }
 
 function nextStatus(s?: string | null): string {
-  const n = normStatus(s);
-  if (n === "backlog") return "in-progress";
-  if (n === "in-progress") return "done";
-  if (n === "done") return "backlog";
-  return "backlog";
+  const order = ["backlog", "in-progress", "done", "blocked", "on-hold"];
+  const idx = order.indexOf(normStatus(s));
+  return order[(idx + 1) % order.length];
 }
 
 function parentStatus(children: Task[]): string {
@@ -120,67 +136,10 @@ function parentStatus(children: Task[]): string {
   return "backlog";
 }
 
-/* ─── Sub-components ─── */
-
-function AssigneeChip({ agentKey, size = "sm" }: { agentKey: string; size?: "sm" | "xs" }) {
-  const a = AGENTS[agentKey] || AGENTS.main;
-  const cls = size === "sm" ? "px-2 py-1 text-xs gap-1" : "px-1.5 py-0.5 text-[11px] gap-0.5";
-  return (
-    <span className={`inline-flex items-center rounded-full border font-medium ${a.color} ${cls}`}>
-      <span>{a.emoji}</span>
-      <span>{a.name}</span>
-    </span>
-  );
-}
-
-function StatusDot({ status, size = 8 }: { status?: string | null; size?: number }) {
-  const cfg = STATUS_CONFIG[normStatus(status)] || STATUS_CONFIG.backlog;
-  return <span className={`inline-block rounded-full flex-shrink-0 ${cfg.dot}`} style={{ width: size, height: size }} />;
-}
-
-function StatusPill({ status, onClick }: { status?: string | null; onClick?: () => void }) {
-  const s = normStatus(status);
-  const cfg = STATUS_CONFIG[s] || STATUS_CONFIG.backlog;
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all hover:opacity-80 ${cfg.pill}`}
-    >
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
-    </button>
-  );
-}
-
-function PriorityPill({ priority, onClick }: { priority?: string | null; onClick?: () => void }) {
-  const p = priority || "medium";
-  const cfg = PRIORITY_CONFIG[p] || PRIORITY_CONFIG.medium;
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all hover:opacity-80 ${cfg.pill}`}
-    >
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
-    </button>
-  );
-}
-
-function ProgressBar({ done, total }: { done: number; total: number }) {
-  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-24 h-1 bg-slate-100 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${pct === 100 ? "bg-green-500" : "bg-violet-500"}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-[11px] text-slate-400 tabular-nums">
-        {done}/{total}
-      </span>
-    </div>
-  );
+/* ─── Status bar color for left accent ─── */
+function statusBarColor(s: string): string {
+  const cfg = STATUS_CFG[s];
+  return cfg?.bar || "bg-slate-300";
 }
 
 /* ─── Main ─── */
@@ -191,14 +150,14 @@ export default function TasksPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
-  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
-  const [subtaskTitleDraft, setSubtaskTitleDraft] = useState("");
+  const [expandedSubtaskId, setExpandedSubtaskId] = useState<string | null>(null);
   const [subtaskForm, setSubtaskForm] = useState({ title: "", assignee: "main", ddl: "" });
   const [showSubtaskAdd, setShowSubtaskAdd] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [newTask, setNewTask] = useState({ title: "", assignee: "main", priority: "medium", ddl: "", description: "" });
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"subtasks" | "description">("subtasks");
+  const [activeTab, setActiveTab] = useState<"subtasks" | "description" | "activity">("subtasks");
+  const [hoveredParent, setHoveredParent] = useState<string | null>(null);
 
   const load = async () => {
     const r = await fetch(`${SUPABASE_BASE}?select=*&order=created_at.asc`, { headers: HDR, cache: "no-store" });
@@ -233,8 +192,7 @@ export default function TasksPage() {
     if (selectedTask) {
       setTitleDraft(selectedTask.title);
       setTitleEditing(false);
-      setEditingSubtaskId(null);
-      setSubtaskTitleDraft("");
+      setExpandedSubtaskId(null);
       setShowSubtaskAdd(false);
       setActiveTab("subtasks");
       setSubtaskForm({ title: "", assignee: selectedTask.assignee || "main", ddl: "" });
@@ -255,14 +213,6 @@ export default function TasksPage() {
     if (selectedId === id) setSelectedId(null);
     await load();
   };
-
-  const weeklyDDL = useMemo(() => {
-    const all = filter === "all" ? tasks : tasks.filter((t) => normStatus(t.status) === filter);
-    return all
-      .map((t) => ({ ...t, ddl: parseDDL(t.description || "").ddl }))
-      .filter((t) => t.ddl && daysUntil(t.ddl) >= 0 && daysUntil(t.ddl) <= 7)
-      .sort((a, b) => daysUntil(a.ddl!) - daysUntil(b.ddl!));
-  }, [tasks, filter]);
 
   const visibleParents = useMemo(() => {
     if (filter === "all") return parents;
@@ -326,378 +276,353 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="h-full overflow-hidden">
-      <div className="h-full overflow-y-auto p-4 md:p-6">
-        {/* ── Filters ── */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl">
-            {FILTERS.map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  filter === f ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {FILTER_LABELS[f]}
-                {(counts[f] ?? 0) > 0 && (
-                  <span className={`ml-1.5 text-[10px] ${filter === f ? "text-violet-600" : "text-slate-400"}`}>
-                    {counts[f]}
-                  </span>
-                )}
-              </button>
-            ))}
+    <div className="h-full overflow-hidden bg-[#fafafa]">
+      <div className="h-full overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-6 py-6">
+          {/* ── Header ── */}
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Tasks</h1>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              新项目
+            </button>
           </div>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors shadow-sm"
-          >
-            + 新项目
-          </button>
-        </div>
 
-        {/* ── Weekly DDL ── */}
-        {weeklyDDL.length > 0 && (
-          <section className="mb-6">
-            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-              <span>⏰</span> 本周截止
-            </h2>
-            <div className="flex flex-wrap gap-2.5">
-              {weeklyDDL.map((t) => {
-                const badge = ddlBadge(t.ddl);
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelectedId(t.id)}
-                    className={`rounded-xl border p-3 text-left w-48 transition-all hover:shadow-md bg-white ${
-                      selectedId === t.id ? "border-violet-400 shadow-md shadow-violet-100" : "border-slate-200 shadow-sm"
-                    }`}
-                  >
-                    <p className="text-sm font-medium text-slate-800 line-clamp-2 mb-2">{t.title}</p>
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs ${badge.cls}`}>{badge.text}</span>
-                      <AssigneeChip agentKey={t.assignee || "main"} size="xs" />
-                    </div>
-                  </button>
-                );
-              })}
+          {/* ── Filter segment control ── */}
+          <div className="mb-6">
+            <div className="inline-flex items-center bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/50">
+              {FILTERS.map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`relative px-3.5 py-1.5 rounded-md text-[13px] font-medium transition-all duration-200 ${
+                    filter === f
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  {FILTER_LABELS[f]}
+                  {(counts[f] ?? 0) > 0 && (
+                    <span className={`ml-1.5 text-[11px] tabular-nums ${filter === f ? "text-slate-500" : "text-slate-400"}`}>
+                      {counts[f]}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
-          </section>
-        )}
+          </div>
 
-        {/* ── Task List ── */}
-        <section>
-          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5">📋 项目列表</h2>
-          <div className="space-y-1.5">
-            {visibleParents.length === 0 && <div className="py-12 text-center text-slate-400 text-sm">暂无任务</div>}
+          {/* ── Task List ── */}
+          <div className="space-y-[1px] rounded-xl border border-slate-200 bg-slate-200/50 overflow-hidden shadow-sm">
+            {visibleParents.length === 0 && (
+              <div className="py-16 text-center bg-white">
+                <p className="text-slate-400 text-sm">暂无任务</p>
+              </div>
+            )}
             {visibleParents.map((parent) => {
               const children = childrenOf.get(parent.id) ?? [];
               const doneCount = children.filter((c) => normStatus(c.status) === "done").length;
               const autoStatus = children.length > 0 ? parentStatus(children) : normStatus(parent.status);
               const isSelected = selectedId === parent.id;
+              const isHovered = hoveredParent === parent.id;
               const { ddl } = parseDDL(parent.description || "");
               const badge = ddlBadge(ddl);
+              const pct = children.length === 0 ? 0 : Math.round((doneCount / children.length) * 100);
+              const agent = AGENTS[parent.assignee || "main"] || AGENTS.main;
 
               return (
-                <button
+                <div
                   key={parent.id}
-                  onClick={() => setSelectedId(parent.id)}
-                  className={`w-full text-left rounded-xl border px-4 py-3 flex items-center gap-3 transition-all ${
-                    isSelected
-                      ? "border-violet-300 bg-violet-50/50 shadow-sm"
-                      : "border-transparent bg-white hover:border-slate-200 hover:shadow-sm"
-                  }`}
+                  className="relative group"
+                  onMouseEnter={() => setHoveredParent(parent.id)}
+                  onMouseLeave={() => setHoveredParent(null)}
                 >
-                  <StatusDot status={autoStatus} size={10} />
+                  <button
+                    onClick={() => setSelectedId(parent.id)}
+                    className={`w-full text-left bg-white flex items-center h-[52px] transition-colors relative ${
+                      isSelected ? "bg-slate-50" : "hover:bg-slate-50/50"
+                    }`}
+                  >
+                    {/* Left color accent bar */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${statusBarColor(autoStatus)} ${isSelected ? "opacity-100" : "opacity-60 group-hover:opacity-100"} transition-opacity`} />
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span
-                        className={`text-sm font-medium ${autoStatus === "done" ? "text-slate-400 line-through" : "text-slate-800"}`}
-                      >
-                        {parent.title}
-                      </span>
-                      <PriorityPill priority={parent.priority} />
+                    <div className="flex items-center gap-3 w-full px-4 pl-5">
+                      {/* Status icon */}
+                      {(() => {
+                        const cfg = STATUS_CFG[autoStatus] || STATUS_CFG.backlog;
+                        const Icon = cfg.icon;
+                        return <Icon className={`w-4 h-4 flex-shrink-0 ${cfg.text}`} />;
+                      })()}
+
+                      {/* Title + progress */}
+                      <div className="flex-1 min-w-0 flex items-center gap-3">
+                        <span className={`text-[13px] font-medium truncate ${autoStatus === "done" ? "text-slate-400 line-through" : "text-slate-800"}`}>
+                          {parent.title}
+                        </span>
+                        {children.length > 0 && (
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="w-16 h-[3px] bg-slate-100 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${pct === 100 ? "bg-green-500" : "bg-blue-500"}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className="text-[11px] text-slate-400 tabular-nums whitespace-nowrap">
+                              {doneCount}/{children.length}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right meta */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Priority flag */}
+                        {parent.priority === "high" && <Flag className="w-3.5 h-3.5 text-red-400" />}
+
+                        {/* DDL */}
+                        {ddl && (
+                          <span className={`text-[11px] ${badge.cls} whitespace-nowrap`}>{badge.text}</span>
+                        )}
+
+                        {/* Assignee avatars */}
+                        {(() => {
+                          const assignees = new Set<string>();
+                          assignees.add(parent.assignee || "main");
+                          children.forEach((c) => { if (c.assignee) assignees.add(c.assignee); });
+                          const arr = Array.from(assignees).slice(0, 3);
+                          return (
+                            <div className="flex -space-x-1.5">
+                              {arr.map((k) => {
+                                const a = AGENTS[k] || AGENTS.main;
+                                return (
+                                  <span
+                                    key={k}
+                                    className={`w-6 h-6 rounded-full ${a.bg} border-2 border-white flex items-center justify-center text-xs`}
+                                    title={a.name}
+                                  >
+                                    {a.emoji}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Delete button on hover */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            del(parent.id);
+                          }}
+                          className={`p-1 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all ${isHovered ? "opacity-100" : "opacity-0"}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    {children.length > 0 && <ProgressBar done={doneCount} total={children.length} />}
-                  </div>
-
-                  <div className="flex items-center gap-2.5 flex-shrink-0">
-                    {ddl && <span className={`text-xs ${badge.cls}`}>{badge.text}</span>}
-                    <AssigneeChip agentKey={parent.assignee || "main"} size="xs" />
-                  </div>
-                </button>
+                  </button>
+                </div>
               );
             })}
           </div>
-        </section>
+        </div>
       </div>
 
       {/* ════════ Task Detail Modal ════════ */}
       {selectedTask && (
-        <div className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSelectedId(null)}>
+        <div
+          className="fixed inset-0 z-30 bg-black/30 backdrop-blur-[2px] flex items-center justify-center p-4"
+          onClick={() => setSelectedId(null)}
+        >
           <div
-            className="relative bg-white w-full max-w-2xl max-h-[88vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+            className="relative bg-white w-full max-w-2xl max-h-[85vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* ── Modal Header ── */}
-            <div className="px-6 pt-5 pb-4 border-b border-slate-100">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  {titleEditing ? (
-                    <input
-                      autoFocus
-                      value={titleDraft}
-                      onChange={(e) => setTitleDraft(e.target.value)}
-                      onBlur={async () => {
-                        await patch(selectedTask.id, { title: titleDraft.trim() || selectedTask.title });
-                        setTitleEditing(false);
-                      }}
-                      onKeyDown={async (e) => {
-                        if (e.key === "Enter") {
-                          await patch(selectedTask.id, { title: titleDraft.trim() || selectedTask.title });
-                          setTitleEditing(false);
-                        }
-                        if (e.key === "Escape") setTitleEditing(false);
-                      }}
-                      className="w-full text-lg font-bold border-b-2 border-violet-400 outline-none bg-transparent pb-0.5"
-                    />
-                  ) : (
-                    <h2
-                      className="text-lg font-bold text-slate-900 cursor-pointer hover:text-violet-600 transition-colors"
-                      onClick={() => setTitleEditing(true)}
-                    >
-                      {selectedTask.title}
-                    </h2>
-                  )}
-
-                  {/* ── Property Pills Row ── */}
-                  <div className="flex flex-wrap items-center gap-2 mt-2.5">
-                    <StatusPill
-                      status={selectedTask.status}
-                      onClick={() => patch(selectedTask.id, { status: nextStatus(selectedTask.status) })}
-                    />
-                    <PriorityPill
-                      priority={selectedTask.priority}
-                      onClick={() => patch(selectedTask.id, { priority: nextPriority(selectedTask.priority) })}
-                    />
-
-                    {/* Assignee selector */}
-                    <div className="relative group">
-                      <AssigneeChip agentKey={selectedTask.assignee || "main"} />
-                      <div className="absolute left-0 top-full mt-1 bg-white rounded-xl border border-slate-200 shadow-xl py-1.5 z-10 hidden group-hover:block min-w-[140px]">
-                        {ASSIGNEE_KEYS.map((k) => (
-                          <button
-                            key={k}
-                            onClick={() => patch(selectedTask.id, { assignee: k })}
-                            className={`w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 flex items-center gap-2 ${
-                              (selectedTask.assignee || "main") === k ? "font-semibold" : ""
-                            }`}
-                          >
-                            <span>{AGENTS[k].emoji}</span>
-                            <span>{AGENTS[k].name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <span className="text-slate-300">·</span>
-
-                    {/* DDL inline */}
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-slate-400">📅</span>
-                      <input
-                        type="date"
-                        value={parseDDL(selectedTask.description || "").ddl || ""}
-                        onChange={async (e) => {
-                          const { text } = parseDDL(selectedTask.description || "");
-                          await patch(selectedTask.id, { description: serializeDesc(e.target.value || null, text) });
-                        }}
-                        className="text-xs text-slate-600 bg-transparent outline-none cursor-pointer hover:text-violet-600"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <button
-                    onClick={() => del(selectedTask.id)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                    title="删除"
-                  >
-                    <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                      <path
-                        fillRule="evenodd"
-                        d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => setSelectedId(null)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                  >
-                    <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                    </svg>
-                  </button>
-                </div>
+            <div className="px-6 pt-6 pb-4">
+              {/* Close + delete */}
+              <div className="flex items-center justify-end gap-1 mb-3">
+                <button
+                  onClick={() => del(selectedTask.id)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setSelectedId(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
+
+              {/* Title */}
+              {titleEditing ? (
+                <input
+                  autoFocus
+                  value={titleDraft}
+                  onChange={(e) => setTitleDraft(e.target.value)}
+                  onBlur={async () => {
+                    await patch(selectedTask.id, { title: titleDraft.trim() || selectedTask.title });
+                    setTitleEditing(false);
+                  }}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") {
+                      await patch(selectedTask.id, { title: titleDraft.trim() || selectedTask.title });
+                      setTitleEditing(false);
+                    }
+                    if (e.key === "Escape") setTitleEditing(false);
+                  }}
+                  className="w-full text-xl font-bold border-none outline-none bg-transparent text-slate-900 placeholder:text-slate-300"
+                />
+              ) : (
+                <h2
+                  className="text-xl font-bold text-slate-900 cursor-text hover:text-slate-700 transition-colors leading-tight"
+                  onClick={() => { setTitleEditing(true); setTitleDraft(selectedTask.title); }}
+                >
+                  {selectedTask.title}
+                </h2>
+              )}
+
+              {/* ── Property Pills Row ── */}
+              <div className="flex flex-wrap items-center gap-2 mt-4">
+                {/* Status pill */}
+                <PropertyPill
+                  options={Object.entries(STATUS_CFG).map(([k, v]) => ({ key: k, label: v.label, bg: v.bg, text: v.text, border: v.border }))}
+                  current={normStatus(selectedTask.status)}
+                  onChange={(v) => patch(selectedTask.id, { status: v })}
+                  prefix={(() => {
+                    const cfg = STATUS_CFG[normStatus(selectedTask.status)] || STATUS_CFG.backlog;
+                    const Icon = cfg.icon;
+                    return <Icon className="w-3.5 h-3.5" />;
+                  })()}
+                />
+
+                {/* Priority pill */}
+                <PropertyPill
+                  options={Object.entries(PRIORITY_CFG).map(([k, v]) => ({ key: k, label: v.label, bg: v.bg, text: v.text, border: v.border }))}
+                  current={selectedTask.priority || "medium"}
+                  onChange={(v) => patch(selectedTask.id, { priority: v })}
+                  prefix={<Flag className="w-3.5 h-3.5" />}
+                />
+
+                {/* Assignee pill */}
+                <AssigneePill
+                  current={selectedTask.assignee || "main"}
+                  onChange={(v) => patch(selectedTask.id, { assignee: v })}
+                />
+
+                {/* DDL pill */}
+                <DDLPill
+                  description={selectedTask.description || ""}
+                  onChange={async (newDdl) => {
+                    const { text } = parseDDL(selectedTask.description || "");
+                    await patch(selectedTask.id, { description: serializeDesc(newDdl, text) });
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* ── Tabs ── */}
+            <div className="px-6 flex gap-0 border-b border-slate-100">
+              {(["subtasks", "description", "activity"] as const).map((tab) => {
+                const labels = { subtasks: "子任务", description: "描述", activity: "活动" };
+                const icons = { subtasks: CheckCircle2, description: MessageSquare, activity: Clock };
+                const Icon = icons[tab];
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px transition-colors ${
+                      activeTab === tab
+                        ? "border-slate-900 text-slate-900"
+                        : "border-transparent text-slate-400 hover:text-slate-600"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {labels[tab]}
+                    {tab === "subtasks" && selectedChildren.length > 0 && (
+                      <span className="text-[11px] text-slate-400 ml-0.5 tabular-nums">
+                        {selectedChildren.filter((c) => normStatus(c.status) === "done").length}/{selectedChildren.length}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {/* ── Modal Body ── */}
             <div className="flex-1 overflow-y-auto">
-              {/* Tabs */}
-              <div className="px-6 pt-3 flex gap-4 border-b border-slate-100">
-                <button
-                  onClick={() => setActiveTab("subtasks")}
-                  className={`pb-2.5 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === "subtasks"
-                      ? "border-violet-500 text-violet-600"
-                      : "border-transparent text-slate-400 hover:text-slate-600"
-                  }`}
-                >
-                  子任务
-                  <span className="ml-1.5 text-xs text-slate-400">
-                    {selectedChildren.filter((c) => normStatus(c.status) === "done").length}/{selectedChildren.length}
-                  </span>
-                </button>
-                <button
-                  onClick={() => setActiveTab("description")}
-                  className={`pb-2.5 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === "description"
-                      ? "border-violet-500 text-violet-600"
-                      : "border-transparent text-slate-400 hover:text-slate-600"
-                  }`}
-                >
-                  描述
-                </button>
-              </div>
-
               <div className="p-6">
                 {activeTab === "description" && (
                   <textarea
-                    rows={8}
+                    rows={10}
                     defaultValue={parseDDL(selectedTask.description || "").text}
                     placeholder="添加描述..."
                     onBlur={async (e) => {
                       const { ddl } = parseDDL(selectedTask.description || "");
                       await patch(selectedTask.id, { description: serializeDesc(ddl, e.target.value) });
                     }}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-slate-50/50 resize-y min-h-[160px] outline-none focus:border-violet-300 focus:bg-white transition-colors placeholder:text-slate-300"
+                    className="w-full rounded-lg px-4 py-3 text-sm bg-slate-50 border border-slate-200 resize-y min-h-[200px] outline-none focus:border-slate-400 focus:bg-white transition-colors placeholder:text-slate-300"
                   />
                 )}
 
+                {activeTab === "activity" && (
+                  <div className="py-12 text-center">
+                    <Clock className="w-8 h-8 text-slate-200 mx-auto mb-3" />
+                    <p className="text-sm text-slate-400">活动日志即将推出</p>
+                  </div>
+                )}
+
                 {activeTab === "subtasks" && (
-                  <div className="space-y-1.5">
+                  <div>
                     {selectedChildren.length === 0 && !showSubtaskAdd && (
-                      <div className="py-8 text-center">
+                      <div className="py-12 text-center">
+                        <CheckCircle2 className="w-8 h-8 text-slate-200 mx-auto mb-3" />
                         <p className="text-slate-400 text-sm mb-3">还没有子任务</p>
                         <button
                           onClick={() => setShowSubtaskAdd(true)}
-                          className="text-violet-600 text-sm font-medium hover:text-violet-700"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
                         >
-                          + 添加第一个子任务
+                          <Plus className="w-4 h-4" />
+                          添加子任务
                         </button>
                       </div>
                     )}
 
-                    {selectedChildren.map((child) => {
-                      const isDone = normStatus(child.status) === "done";
-                      const childDdl = parseDDL(child.description || "").ddl;
-                      const isEditing = editingSubtaskId === child.id;
+                    {selectedChildren.length > 0 && (
+                      <div className="space-y-0">
+                        {selectedChildren.map((child) => (
+                          <SubtaskRow
+                            key={child.id}
+                            child={child}
+                            isExpanded={expandedSubtaskId === child.id}
+                            onToggleExpand={() =>
+                              setExpandedSubtaskId(expandedSubtaskId === child.id ? null : child.id)
+                            }
+                            onPatch={patch}
+                            onDelete={del}
+                          />
+                        ))}
+                      </div>
+                    )}
 
-                      return (
-                        <div
-                          key={child.id}
-                          className={`group flex items-center gap-2.5 rounded-lg px-3 py-2.5 transition-all hover:bg-slate-50 ${
-                            isDone ? "opacity-50" : ""
-                          }`}
-                        >
-                          {/* Checkbox */}
-                          <button
-                            onClick={() => patch(child.id, { status: isDone ? "backlog" : "done" })}
-                            className={`w-[18px] h-[18px] rounded-md border-2 flex-shrink-0 transition-all flex items-center justify-center ${
-                              isDone
-                                ? "bg-green-500 border-green-500"
-                                : "border-slate-300 hover:border-violet-400"
-                            }`}
-                          >
-                            {isDone && (
-                              <svg viewBox="0 0 12 12" fill="none" className="w-2.5 h-2.5 text-white">
-                                <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            )}
-                          </button>
-
-                          {/* Title */}
-                          <div className="flex-1 min-w-0">
-                            {isEditing ? (
-                              <input
-                                autoFocus
-                                value={subtaskTitleDraft}
-                                onChange={(e) => setSubtaskTitleDraft(e.target.value)}
-                                onBlur={async () => {
-                                  await patch(child.id, { title: subtaskTitleDraft.trim() || child.title });
-                                  setEditingSubtaskId(null);
-                                }}
-                                onKeyDown={async (e) => {
-                                  if (e.key === "Enter") {
-                                    await patch(child.id, { title: subtaskTitleDraft.trim() || child.title });
-                                    setEditingSubtaskId(null);
-                                  }
-                                  if (e.key === "Escape") setEditingSubtaskId(null);
-                                }}
-                                className="w-full text-sm border-b border-violet-400 outline-none bg-transparent"
-                              />
-                            ) : (
-                              <button
-                                className={`text-left text-sm w-full truncate ${isDone ? "line-through text-slate-400" : "text-slate-700"}`}
-                                onClick={() => {
-                                  setEditingSubtaskId(child.id);
-                                  setSubtaskTitleDraft(child.title);
-                                }}
-                              >
-                                {child.title}
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Meta pills */}
-                          <div className="flex items-center gap-1.5 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
-                            {childDdl && (
-                              <span className={`text-[11px] ${ddlBadge(childDdl).cls}`}>{ddlBadge(childDdl).text}</span>
-                            )}
-                            <AssigneeChip agentKey={child.assignee || "main"} size="xs" />
-                            <PriorityPill
-                              priority={child.priority}
-                              onClick={() => patch(child.id, { priority: nextPriority(child.priority) })}
-                            />
-                            <button
-                              onClick={() => del(child.id)}
-                              className="p-0.5 rounded text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                            >
-                              <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
-                                <path d="M5.28 4.22a.75.75 0 00-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 101.06 1.06L8 9.06l2.72 2.72a.75.75 0 101.06-1.06L9.06 8l2.72-2.72a.75.75 0 00-1.06-1.06L8 6.94 5.28 4.22z" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {/* ── Add subtask ── */}
+                    {/* Add subtask */}
                     {selectedChildren.length > 0 && !showSubtaskAdd && (
                       <button
                         onClick={() => setShowSubtaskAdd(true)}
-                        className="w-full text-left rounded-lg px-3 py-2 text-sm text-slate-400 hover:text-violet-600 hover:bg-violet-50/50 transition-colors"
+                        className="flex items-center gap-1.5 mt-2 px-3 py-2 text-[13px] text-slate-400 hover:text-slate-600 transition-colors rounded-lg hover:bg-slate-50 w-full"
                       >
-                        + 添加子任务
+                        <Plus className="w-3.5 h-3.5" />
+                        添加子任务
                       </button>
                     )}
 
                     {showSubtaskAdd && (
-                      <div className="rounded-xl border border-violet-200 bg-violet-50/30 p-3.5 mt-2">
+                      <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/50 p-4">
                         <div className="flex gap-2">
                           <input
                             autoFocus
@@ -708,43 +633,45 @@ export default function TasksPage() {
                               if (e.key === "Escape") setShowSubtaskAdd(false);
                             }}
                             placeholder="子任务标题..."
-                            className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-violet-400 bg-white"
+                            className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-slate-400 transition-colors"
                           />
                           <button
                             onClick={onAddSubtask}
                             disabled={!subtaskForm.title.trim()}
-                            className="px-3.5 py-2 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 disabled:opacity-40 transition-colors"
+                            className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-30 transition-colors"
                           >
                             添加
                           </button>
                         </div>
-                        <div className="flex items-center gap-2 mt-2.5">
-                          {/* Assignee selector for new subtask */}
+                        <div className="flex items-center gap-3 mt-3">
                           <div className="flex gap-1">
-                            {ASSIGNEE_KEYS.map((k) => (
-                              <button
-                                key={k}
-                                onClick={() => setSubtaskForm((prev) => ({ ...prev, assignee: k }))}
-                                className={`w-7 h-7 rounded-full flex items-center justify-center text-sm transition-all ${
-                                  subtaskForm.assignee === k
-                                    ? "bg-violet-100 ring-2 ring-violet-400 scale-110"
-                                    : "bg-slate-100 hover:bg-slate-200"
-                                }`}
-                                title={AGENTS[k].name}
-                              >
-                                {AGENTS[k].emoji}
-                              </button>
-                            ))}
+                            {ASSIGNEE_KEYS.map((k) => {
+                              const a = AGENTS[k] || AGENTS.main;
+                              return (
+                                <button
+                                  key={k}
+                                  onClick={() => setSubtaskForm((prev) => ({ ...prev, assignee: k }))}
+                                  className={`w-7 h-7 rounded-full flex items-center justify-center text-sm transition-all ${
+                                    subtaskForm.assignee === k
+                                      ? `${a.bg} ring-2 ring-slate-400 scale-110`
+                                      : "bg-white border border-slate-200 hover:border-slate-300"
+                                  }`}
+                                  title={a.name}
+                                >
+                                  {a.emoji}
+                                </button>
+                              );
+                            })}
                           </div>
                           <input
                             type="date"
                             value={subtaskForm.ddl}
                             onChange={(e) => setSubtaskForm((prev) => ({ ...prev, ddl: e.target.value }))}
-                            className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:border-violet-400"
+                            className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white outline-none focus:border-slate-400"
                           />
                           <button
                             onClick={() => setShowSubtaskAdd(false)}
-                            className="ml-auto text-xs text-slate-400 hover:text-slate-600"
+                            className="ml-auto text-xs text-slate-400 hover:text-slate-600 transition-colors"
                           >
                             取消
                           </button>
@@ -757,13 +684,9 @@ export default function TasksPage() {
             </div>
 
             {/* ── Modal Footer ── */}
-            <div className="px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-[11px] text-slate-400">
-              <span>
-                创建于 {selectedTask.created_at ? new Date(selectedTask.created_at).toLocaleDateString("zh-CN") : "-"}
-              </span>
-              <span>
-                更新于 {selectedTask.updated_at ? new Date(selectedTask.updated_at).toLocaleDateString("zh-CN") : "-"}
-              </span>
+            <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+              <span>创建 {selectedTask.created_at ? new Date(selectedTask.created_at).toLocaleDateString("zh-CN") : "-"}</span>
+              <span>更新 {selectedTask.updated_at ? new Date(selectedTask.updated_at).toLocaleDateString("zh-CN") : "-"}</span>
             </div>
           </div>
         </div>
@@ -771,72 +694,84 @@ export default function TasksPage() {
 
       {/* ════════ Add Task Modal ════════ */}
       {showAdd && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-20 flex items-center justify-center p-4" onClick={() => setShowAdd(false)}>
+        <div
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-20 flex items-center justify-center p-4"
+          onClick={() => setShowAdd(false)}
+        >
           <form
             onSubmit={onAddTask}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
           >
-            <div className="p-6 space-y-4">
-              <h2 className="text-base font-semibold text-slate-800">新建项目</h2>
+            <div className="p-6 space-y-5">
+              <h2 className="text-lg font-semibold text-slate-900">新建项目</h2>
+
               <input
                 required
                 autoFocus
                 value={newTask.title}
                 onChange={(e) => setNewTask((p) => ({ ...p, title: e.target.value }))}
                 placeholder="项目名称"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-violet-400"
+                className="w-full border border-slate-200 rounded-lg px-4 py-3 text-sm outline-none focus:border-slate-400 transition-colors placeholder:text-slate-300"
               />
 
-              <div className="flex flex-wrap gap-2">
-                <div>
-                  <label className="text-[11px] text-slate-400 mb-1 block">负责人</label>
-                  <div className="flex gap-1">
-                    {ASSIGNEE_KEYS.map((k) => (
+              {/* Assignee */}
+              <div>
+                <label className="text-[12px] font-medium text-slate-500 mb-2 block">负责人</label>
+                <div className="flex gap-1.5">
+                  {ASSIGNEE_KEYS.map((k) => {
+                    const a = AGENTS[k] || AGENTS.main;
+                    return (
                       <button
                         key={k}
                         type="button"
                         onClick={() => setNewTask((p) => ({ ...p, assignee: k }))}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-base transition-all ${
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-base transition-all ${
                           newTask.assignee === k
-                            ? "bg-violet-100 ring-2 ring-violet-400 scale-110"
-                            : "bg-slate-100 hover:bg-slate-200"
+                            ? `${a.bg} ring-2 ring-slate-400 scale-110`
+                            : "bg-slate-50 border border-slate-200 hover:border-slate-300"
                         }`}
-                        title={AGENTS[k].name}
+                        title={a.name}
                       >
-                        {AGENTS[k].emoji}
+                        {a.emoji}
                       </button>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-                <div className="ml-auto">
-                  <label className="text-[11px] text-slate-400 mb-1 block">优先级</label>
-                  <div className="flex gap-1">
-                    {(["high", "medium", "low"] as const).map((p) => (
+              </div>
+
+              {/* Priority */}
+              <div>
+                <label className="text-[12px] font-medium text-slate-500 mb-2 block">优先级</label>
+                <div className="flex gap-1.5">
+                  {(["high", "medium", "low"] as const).map((p) => {
+                    const cfg = PRIORITY_CFG[p];
+                    return (
                       <button
                         key={p}
                         type="button"
                         onClick={() => setNewTask((prev) => ({ ...prev, priority: p }))}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        className={`px-4 py-2 rounded-lg text-[13px] font-medium transition-all border ${
                           newTask.priority === p
-                            ? PRIORITY_CONFIG[p].pill + " ring-1 ring-current"
-                            : "bg-slate-100 text-slate-400"
+                            ? `${cfg.bg} ${cfg.text} ${cfg.border}`
+                            : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"
                         }`}
                       >
-                        {PRIORITY_CONFIG[p].label}
+                        {cfg.label}
                       </button>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
 
+              {/* DDL */}
               <div>
-                <label className="text-[11px] text-slate-400 mb-1 block">DDL（可选）</label>
+                <label className="text-[12px] font-medium text-slate-500 mb-2 block">截止日期</label>
                 <input
                   type="date"
                   value={newTask.ddl}
                   onChange={(e) => setNewTask((p) => ({ ...p, ddl: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-white outline-none focus:border-violet-400"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-slate-400 transition-colors"
                 />
               </div>
 
@@ -845,22 +780,22 @@ export default function TasksPage() {
                 value={newTask.description}
                 onChange={(e) => setNewTask((p) => ({ ...p, description: e.target.value }))}
                 placeholder="描述（可选）"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm resize-none outline-none focus:border-violet-400 placeholder:text-slate-300"
+                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm resize-none outline-none focus:border-slate-400 placeholder:text-slate-300 transition-colors"
               />
             </div>
 
-            <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/50 flex gap-2.5 justify-end">
+            <div className="px-6 py-4 border-t border-slate-100 flex gap-2 justify-end">
               <button
                 type="button"
                 onClick={() => setShowAdd(false)}
-                className="px-4 py-2 rounded-xl text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                className="px-4 py-2 rounded-lg text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
               >
                 取消
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                className="px-5 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-50 transition-colors"
               >
                 {saving ? "创建中..." : "创建"}
               </button>
@@ -868,6 +803,313 @@ export default function TasksPage() {
           </form>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   Sub-components
+   ═══════════════════════════════════════════════ */
+
+/* ── Property Pill (generic clickable pill with popover) ── */
+function PropertyPill({
+  options,
+  current,
+  onChange,
+  prefix,
+}: {
+  options: { key: string; label: string; bg: string; text: string; border: string }[];
+  current: string;
+  onChange: (key: string) => void;
+  prefix?: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const opt = options.find((o) => o.key === current) || options[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium border transition-all hover:shadow-sm ${opt.bg} ${opt.text} ${opt.border}`}
+      >
+        {prefix}
+        {opt.label}
+        <ChevronDown className="w-3 h-3 opacity-50" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1.5 bg-white rounded-lg border border-slate-200 shadow-lg py-1 z-20 min-w-[120px]">
+          {options.map((o) => (
+            <button
+              key={o.key}
+              onClick={() => {
+                onChange(o.key);
+                setOpen(false);
+              }}
+              className={`w-full text-left px-3 py-1.5 text-[12px] hover:bg-slate-50 flex items-center gap-2 transition-colors ${
+                o.key === current ? "font-semibold" : ""
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${o.bg.replace("50", "500").replace("bg-slate-50", "bg-slate-400")}`} />
+              <span className={o.key === current ? o.text : "text-slate-600"}>{o.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Assignee Pill ── */
+function AssigneePill({ current, onChange }: { current: string; onChange: (key: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const agent = AGENTS[current] || AGENTS.main;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium border transition-all hover:shadow-sm ${agent.bg} ${agent.text} ${agent.border}`}
+      >
+        <span>{agent.emoji}</span>
+        {agent.name}
+        <ChevronDown className="w-3 h-3 opacity-50" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1.5 bg-white rounded-lg border border-slate-200 shadow-lg py-1 z-20 min-w-[140px]">
+          {ASSIGNEE_KEYS.map((k) => {
+            const a = AGENTS[k] || AGENTS.main;
+            return (
+              <button
+                key={k}
+                onClick={() => {
+                  onChange(k);
+                  setOpen(false);
+                }}
+                className={`w-full text-left px-3 py-1.5 text-[12px] hover:bg-slate-50 flex items-center gap-2 transition-colors ${
+                  k === current ? "font-semibold" : ""
+                }`}
+              >
+                <span>{a.emoji}</span>
+                <span className={k === current ? a.text : "text-slate-600"}>{a.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── DDL Pill ── */
+function DDLPill({ description, onChange }: { description: string; onChange: (ddl: string | null) => void }) {
+  const { ddl } = parseDDL(description);
+  const badge = ddlBadge(ddl);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="relative inline-flex items-center">
+      <button
+        onClick={() => inputRef.current?.showPicker()}
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium border transition-all hover:shadow-sm ${
+          ddl
+            ? daysUntil(ddl) <= 3
+              ? "bg-red-50 text-red-600 border-red-200"
+              : daysUntil(ddl) <= 7
+              ? "bg-orange-50 text-orange-600 border-orange-200"
+              : "bg-slate-50 text-slate-600 border-slate-200"
+            : "bg-slate-50 text-slate-400 border-slate-200"
+        }`}
+      >
+        <Calendar className="w-3.5 h-3.5" />
+        {ddl ? badge.text : "设置DDL"}
+      </button>
+      <input
+        ref={inputRef}
+        type="date"
+        value={ddl || ""}
+        onChange={(e) => onChange(e.target.value || null)}
+        className="absolute inset-0 opacity-0 w-full cursor-pointer"
+      />
+    </div>
+  );
+}
+
+/* ── Subtask Row with inline expandable detail panel ── */
+function SubtaskRow({
+  child,
+  isExpanded,
+  onToggleExpand,
+  onPatch,
+  onDelete,
+}: {
+  child: Task;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onPatch: (id: string, updates: Partial<Task>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  const isDone = normStatus(child.status) === "done";
+  const childDdl = parseDDL(child.description || "").ddl;
+
+  return (
+    <div className={`border-b border-slate-100 last:border-b-0 ${isExpanded ? "bg-slate-50/50" : ""}`}>
+      {/* Main row */}
+      <div className="group flex items-center gap-2.5 px-2 py-2.5 hover:bg-slate-50/80 transition-colors">
+        {/* Checkbox with animation */}
+        <button
+          onClick={() => onPatch(child.id, { status: isDone ? "backlog" : "done" })}
+          className={`w-[18px] h-[18px] rounded-md border-2 flex-shrink-0 transition-all duration-300 flex items-center justify-center ${
+            isDone
+              ? "bg-green-500 border-green-500 scale-100"
+              : "border-slate-300 hover:border-slate-400"
+          }`}
+        >
+          <Check className={`w-2.5 h-2.5 text-white transition-all duration-300 ${isDone ? "opacity-100 scale-100" : "opacity-0 scale-50"}`} />
+        </button>
+
+        {/* Expand chevron */}
+        <button onClick={onToggleExpand} className="p-0.5 text-slate-400 hover:text-slate-600 transition-colors">
+          {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+        </button>
+
+        {/* Title */}
+        <button
+          onClick={onToggleExpand}
+          className={`flex-1 min-w-0 text-left text-[13px] truncate transition-colors ${
+            isDone ? "line-through text-slate-400" : "text-slate-700 hover:text-slate-900"
+          }`}
+        >
+          {child.title}
+        </button>
+
+        {/* Meta */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {childDdl && (
+            <span className={`text-[11px] ${ddlBadge(childDdl).cls}`}>{ddlBadge(childDdl).text}</span>
+          )}
+          <span
+            className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+              (AGENTS[child.assignee || "main"] || AGENTS.main).bg
+            }`}
+            title={(AGENTS[child.assignee || "main"] || AGENTS.main).name}
+          >
+            {(AGENTS[child.assignee || "main"] || AGENTS.main).emoji}
+          </span>
+          <button
+            onClick={() => onDelete(child.id)}
+            className="p-0.5 rounded text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Expanded inline detail panel ── */}
+      {isExpanded && (
+        <SubtaskDetailPanel child={child} onPatch={onPatch} />
+      )}
+    </div>
+  );
+}
+
+/* ── Subtask Detail Panel (inline, not a modal) ── */
+function SubtaskDetailPanel({
+  child,
+  onPatch,
+}: {
+  child: Task;
+  onPatch: (id: string, updates: Partial<Task>) => Promise<void>;
+}) {
+  const [localTitle, setLocalTitle] = useState(child.title);
+  const { ddl, text: descText } = parseDDL(child.description || "");
+  const [localDesc, setLocalDesc] = useState(descText);
+
+  useEffect(() => {
+    setLocalTitle(child.title);
+    const parsed = parseDDL(child.description || "");
+    setLocalDesc(parsed.text);
+  }, [child.id, child.title, child.description]);
+
+  return (
+    <div className="px-10 pb-4 space-y-3 animate-in slide-in-from-top-1 fade-in duration-200">
+      {/* Editable title */}
+      <input
+        value={localTitle}
+        onChange={(e) => setLocalTitle(e.target.value)}
+        onBlur={() => {
+          if (localTitle.trim() && localTitle !== child.title)
+            onPatch(child.id, { title: localTitle.trim() });
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        className="w-full text-sm font-medium bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-400 transition-colors"
+      />
+
+      {/* Property pills row */}
+      <div className="flex flex-wrap items-center gap-2">
+        <PropertyPill
+          options={Object.entries(STATUS_CFG).map(([k, v]) => ({ key: k, label: v.label, bg: v.bg, text: v.text, border: v.border }))}
+          current={normStatus(child.status)}
+          onChange={(v) => onPatch(child.id, { status: v })}
+          prefix={(() => {
+            const cfg = STATUS_CFG[normStatus(child.status)] || STATUS_CFG.backlog;
+            const Icon = cfg.icon;
+            return <Icon className="w-3 h-3" />;
+          })()}
+        />
+        <PropertyPill
+          options={Object.entries(PRIORITY_CFG).map(([k, v]) => ({ key: k, label: v.label, bg: v.bg, text: v.text, border: v.border }))}
+          current={child.priority || "medium"}
+          onChange={(v) => onPatch(child.id, { priority: v })}
+          prefix={<Flag className="w-3 h-3" />}
+        />
+        <AssigneePill
+          current={child.assignee || "main"}
+          onChange={(v) => onPatch(child.id, { assignee: v })}
+        />
+        <DDLPill
+          description={child.description || ""}
+          onChange={async (newDdl) => {
+            await onPatch(child.id, { description: serializeDesc(newDdl, localDesc) });
+          }}
+        />
+      </div>
+
+      {/* Description */}
+      <textarea
+        rows={3}
+        value={localDesc}
+        onChange={(e) => setLocalDesc(e.target.value)}
+        onBlur={() => {
+          const { ddl: currentDdl } = parseDDL(child.description || "");
+          onPatch(child.id, { description: serializeDesc(currentDdl, localDesc) });
+        }}
+        placeholder="添加描述..."
+        className="w-full rounded-lg px-3 py-2.5 text-sm bg-white border border-slate-200 resize-none outline-none focus:border-slate-400 transition-colors placeholder:text-slate-300"
+      />
     </div>
   );
 }
