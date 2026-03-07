@@ -6,20 +6,23 @@
 <title>Flux — AI Task Manager</title>
 <style>
 :root {
-  --bg: #FAFAF8;
+  --bg: #F8F7FC;
   --surface: #FFFFFF;
-  --primary: #4A6CF7;
-  --primary-light: #EEF2FF;
-  --accent: #F7B955;
-  --accent-light: #FFF8E7;
-  --success: #5CB85C;
-  --streak: #FF8C42;
+  --primary: #7C3AED;
+  --primary-light: #F3EEFF;
+  --primary-dark: #6D28D9;
+  --accent: #06D6A0;
+  --accent-light: #ECFDF5;
+  --gold: #F59E0B;
+  --gold-light: #FFFBEB;
+  --streak: #FF6B35;
   --text: #1A1A2E;
   --text2: #8E8E93;
   --text3: #C7C7CC;
+  --border: rgba(0,0,0,0.06);
   --danger: #FF3B30;
   --radius: 16px;
-  --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  --shadow: 0 2px 12px rgba(124,58,237,0.06);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -35,8 +38,7 @@ body {
 }
 
 .phone {
-  width: 390px;
-  height: 844px;
+  width: 390px; height: 844px;
   background: var(--bg);
   border-radius: 44px;
   box-shadow: 0 30px 80px rgba(0,0,0,0.2);
@@ -45,144 +47,97 @@ body {
   border: 8px solid #1a1a1e;
 }
 
-/* Dynamic Island */
 .island {
-  width: 126px;
-  height: 36px;
-  background: #1a1a1e;
-  border-radius: 20px;
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 100;
+  width: 126px; height: 36px;
+  background: #1a1a1e; border-radius: 20px;
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 100;
 }
 
-/* Status bar */
 .status-bar {
   height: 54px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  display: flex; align-items: flex-end; justify-content: space-between;
   padding: 0 28px 4px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
+  font-size: 14px; font-weight: 600; color: var(--text);
 }
 
-/* Pages container */
 .pages { height: calc(100% - 54px - 80px); overflow-y: auto; overflow-x: hidden; }
+.pages::-webkit-scrollbar { display: none; }
 .page { display: none; min-height: 100%; padding: 8px 20px 20px; }
 .page.active { display: block; }
 
 /* Tab bar */
 .tab-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  position: absolute; bottom: 0; left: 0; right: 0;
   height: 80px;
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 0.5px solid rgba(0,0,0,0.08);
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-around;
-  padding-top: 8px;
-  z-index: 50;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-top: 0.5px solid var(--border);
+  display: flex; align-items: flex-start; justify-content: space-around;
+  padding-top: 8px; z-index: 50;
 }
 .tab-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  cursor: pointer;
-  border: none;
-  background: none;
-  padding: 4px 16px;
-  color: var(--text3);
-  transition: color 0.2s;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  cursor: pointer; border: none; background: none;
+  padding: 4px 12px; color: var(--text3); transition: color 0.2s;
+  font-family: inherit;
 }
 .tab-item.active { color: var(--primary); }
 .tab-item svg { width: 24px; height: 24px; }
 .tab-item span { font-size: 10px; font-weight: 500; }
 
-/* Cards */
-.card {
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 16px;
-  margin-bottom: 12px;
-}
-
-/* Section headers */
+/* Shared */
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px; }
 .section-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text2);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  font-size: 13px; font-weight: 700; color: var(--text2);
+  letter-spacing: 0.5px; text-transform: uppercase;
   margin: 20px 0 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between;
 }
-
-/* === HOME PAGE === */
-.home-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.page-header {
+  display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 16px;
 }
+.page-title { font-size: 28px; font-weight: 700; color: var(--text); }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--surface); border: none; box-shadow: var(--shadow);
+  display: grid; place-items: center; cursor: pointer; font-size: 18px;
+}
+.btn-sm { padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; font-family: inherit; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-ghost { background: transparent; color: var(--text2); }
+.btn-accent { background: var(--accent); color: white; }
+
+/* === HOME === */
 .home-date { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1.2; }
 .home-date small { font-size: 15px; font-weight: 400; color: var(--text2); display: block; }
-.settings-btn {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: var(--surface); border: none;
-  box-shadow: var(--shadow);
-  display: grid; place-items: center;
-  cursor: pointer; font-size: 18px;
-}
 
-/* AI Greeting */
 .ai-greeting {
-  background: var(--primary-light);
-  border-radius: 14px;
-  padding: 14px 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 20px;
-  position: relative;
+  background: linear-gradient(135deg, var(--primary-light), #F0E6FF);
+  border-radius: 14px; padding: 14px 16px;
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-bottom: 20px; position: relative;
 }
-.ai-greeting .sparkle { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+.ai-greeting .sparkle { font-size: 22px; flex-shrink: 0; }
 .ai-greeting p { font-size: 14px; line-height: 1.5; color: var(--text); flex: 1; }
 .ai-greeting .dismiss {
   position: absolute; top: 10px; right: 12px;
-  background: none; border: none; color: var(--text3);
-  font-size: 14px; cursor: pointer;
+  background: none; border: none; color: var(--text3); font-size: 14px; cursor: pointer;
 }
 
-/* Task item */
 .task-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: flex; align-items: center; gap: 12px;
   padding: 14px 0;
-  border-bottom: 0.5px solid rgba(0,0,0,0.05);
+  border-bottom: 0.5px solid var(--border);
   cursor: pointer;
 }
 .task-item:last-child { border-bottom: none; }
 .task-check {
   width: 22px; height: 22px; border-radius: 50%;
   border: 2px solid var(--primary); flex-shrink: 0;
-  display: grid; place-items: center;
-  cursor: pointer; transition: all 0.3s;
+  display: grid; place-items: center; cursor: pointer; transition: all 0.3s;
 }
-.task-check.done { background: var(--success); border-color: var(--success); }
+.task-check.done { background: var(--accent); border-color: var(--accent); }
 .task-check.done::after { content: '✓'; color: white; font-size: 13px; font-weight: 700; }
 .task-info { flex: 1; }
 .task-title { font-size: 16px; font-weight: 500; color: var(--text); }
@@ -192,64 +147,33 @@ body {
 .streak-badge { color: var(--streak) !important; font-weight: 600; }
 .chevron { color: var(--text3); font-size: 14px; }
 
-/* Routine progress ring */
-.routine-ring-section {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-top: 8px;
-}
+.routine-ring-section { display: flex; align-items: center; gap: 16px; }
 .ring-container { position: relative; width: 56px; height: 56px; }
 .ring-container svg { transform: rotate(-90deg); }
 .ring-bg { fill: none; stroke: #E8E8ED; stroke-width: 5; }
-.ring-fill { fill: none; stroke: var(--primary); stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }
-.ring-label {
-  position: absolute; top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 14px; font-weight: 700; color: var(--primary);
-}
+.ring-fill { fill: none; stroke: var(--primary); stroke-width: 5; stroke-linecap: round; }
+.ring-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 14px; font-weight: 700; color: var(--primary); }
 .ring-text { font-size: 14px; color: var(--text2); }
 .ring-text strong { color: var(--text); }
 
-/* Floating AI pill */
 .ai-pill {
-  position: absolute;
-  bottom: 92px;
-  right: 24px;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 24px;
-  padding: 12px 20px;
-  font-size: 15px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  box-shadow: 0 4px 20px rgba(74,108,247,0.4);
-  z-index: 40;
-  transition: transform 0.2s;
+  position: absolute; bottom: 92px; right: 24px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white; border: none; border-radius: 24px;
+  padding: 12px 20px; font-size: 15px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+  z-index: 40; transition: transform 0.2s; font-family: inherit;
 }
 .ai-pill:active { transform: scale(0.95); }
 
-/* === TASKS PAGE === */
-.project-chips {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  -webkit-overflow-scrolling: touch;
-}
+/* === TASKS === */
+.project-chips { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+.project-chips::-webkit-scrollbar { display: none; }
 .project-chip {
-  flex-shrink: 0;
-  background: var(--surface);
-  border-radius: 12px;
-  padding: 12px 16px;
-  box-shadow: var(--shadow);
-  cursor: pointer;
-  min-width: 140px;
-  transition: transform 0.2s;
+  flex-shrink: 0; background: var(--surface); border-radius: 12px;
+  padding: 12px 16px; box-shadow: var(--shadow); cursor: pointer;
+  min-width: 140px; transition: transform 0.2s;
 }
 .project-chip:active { transform: scale(0.97); }
 .project-chip .name { font-size: 14px; font-weight: 600; color: var(--text); }
@@ -257,314 +181,261 @@ body {
 .project-chip .bar-fill { height: 100%; border-radius: 2px; background: var(--primary); }
 .project-chip .pct { font-size: 12px; color: var(--text2); margin-top: 4px; }
 
-/* === ROUTINES PAGE === */
-.routine-card {
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 16px;
-  margin-bottom: 12px;
-}
+/* === ROUTINES === */
+.routine-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px; }
 .routine-header { display: flex; justify-content: space-between; align-items: center; }
 .routine-title { font-size: 16px; font-weight: 600; }
 .streak-pill {
-  background: var(--accent-light);
-  color: var(--streak);
-  border-radius: 12px;
-  padding: 4px 10px;
-  font-size: 13px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 3px;
+  background: linear-gradient(135deg, #FFF3E0, #FFE0CC);
+  color: var(--streak); border-radius: 12px;
+  padding: 4px 10px; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; gap: 3px;
 }
 .week-dots { display: flex; gap: 6px; margin-top: 10px; }
-.dot {
-  width: 28px; height: 28px; border-radius: 50%;
-  display: grid; place-items: center;
-  font-size: 10px; font-weight: 500;
-  color: var(--text2);
-}
+.dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 500; color: var(--text2); }
 .dot.filled { background: var(--primary); color: white; }
 .dot.today { border: 2px solid var(--primary); }
 .dot.empty { background: #F0F0F2; }
 .routine-best { font-size: 12px; color: var(--text2); margin-top: 8px; }
 
-/* Schedule grid */
-.schedule-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
-  margin-top: 10px;
-}
+.schedule-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 10px; }
 .sched-header { font-size: 12px; font-weight: 600; color: var(--text2); text-align: center; padding: 6px 0; }
-.sched-cell {
-  text-align: center; padding: 8px 4px;
-  border-radius: 8px; font-size: 11px; font-weight: 500;
-}
+.sched-cell { text-align: center; padding: 8px 4px; border-radius: 8px; font-size: 11px; font-weight: 500; }
 .sched-cell.has-class { background: var(--primary-light); color: var(--primary); }
 .sched-cell.empty-class { color: var(--text3); }
 
-/* AI Suggestion */
-.ai-suggestion {
-  background: var(--primary-light);
-  border-radius: 12px;
-  padding: 14px;
-  margin-top: 16px;
-}
+.ai-suggestion { background: linear-gradient(135deg, var(--primary-light), #F0E6FF); border-radius: 12px; padding: 14px; margin-top: 16px; }
 .ai-suggestion p { font-size: 13px; color: var(--text); line-height: 1.5; }
 .ai-suggestion .actions { display: flex; gap: 8px; margin-top: 10px; }
-.btn-sm {
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-}
-.btn-primary { background: var(--primary); color: white; }
-.btn-ghost { background: transparent; color: var(--text2); }
-
-/* === AI CHAT === */
-.chat-overlay {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 75%;
-  background: var(--surface);
-  border-radius: 16px 16px 0 0;
-  box-shadow: 0 -4px 30px rgba(0,0,0,0.12);
-  z-index: 60;
-  display: none;
-  flex-direction: column;
-}
-.chat-overlay.open { display: flex; }
-.chat-handle {
-  width: 36px; height: 5px;
-  background: var(--text3); border-radius: 3px;
-  margin: 10px auto 4px;
-}
-.chat-title {
-  font-size: 17px; font-weight: 700;
-  padding: 8px 20px 12px;
-  display: flex; justify-content: space-between; align-items: center;
-}
-.chat-close { background: none; border: none; font-size: 22px; color: var(--text2); cursor: pointer; }
-.chat-body { flex: 1; overflow-y: auto; padding: 0 20px; }
-.quick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
-.quick-chip {
-  background: var(--primary-light);
-  color: var(--primary);
-  border: none;
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.chat-msg { margin-bottom: 16px; }
-.chat-msg.user { text-align: right; }
-.chat-msg .bubble {
-  display: inline-block;
-  padding: 10px 14px;
-  border-radius: 16px;
-  font-size: 14px;
-  line-height: 1.5;
-  max-width: 85%;
-  text-align: left;
-}
-.chat-msg.ai .bubble { background: var(--primary-light); color: var(--text); border-bottom-left-radius: 4px; }
-.chat-msg.user .bubble { background: var(--primary); color: white; border-bottom-right-radius: 4px; }
-.chat-msg .actions-inline { margin-top: 8px; display: flex; gap: 8px; }
-.chat-input-bar {
-  display: flex;
-  gap: 8px;
-  padding: 12px 20px 28px;
-  border-top: 0.5px solid rgba(0,0,0,0.08);
-}
-.chat-input {
-  flex: 1;
-  border: 1.5px solid #E8E8ED;
-  border-radius: 22px;
-  padding: 10px 16px;
-  font-size: 15px;
-  outline: none;
-  background: var(--bg);
-}
-.chat-input:focus { border-color: var(--primary); }
-.chat-send {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: var(--primary);
-  border: none;
-  color: white;
-  font-size: 18px;
-  cursor: pointer;
-  display: grid; place-items: center;
-}
-
-/* === EVENING CHECK-IN === */
-.checkin-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  z-index: 70;
-  display: none;
-  align-items: flex-end;
-}
-.checkin-overlay.open { display: flex; }
-.checkin-modal {
-  background: var(--surface);
-  border-radius: 20px 20px 0 0;
-  padding: 28px 24px 40px;
-  width: 100%;
-}
-.checkin-title { font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 8px; }
-.checkin-subtitle { font-size: 15px; color: var(--text2); text-align: center; margin-bottom: 24px; }
-.checkin-task {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 0.5px solid rgba(0,0,0,0.05);
-}
-.checkin-task .name { font-size: 15px; color: var(--text); }
-.checkin-task .btns { display: flex; gap: 6px; }
-.btn-outline {
-  padding: 6px 12px;
-  border: 1.5px solid var(--primary);
-  border-radius: 8px;
-  background: none;
-  color: var(--primary);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn-text { background: none; border: none; color: var(--text2); font-size: 12px; cursor: pointer; }
-.checkin-ai {
-  background: var(--primary-light);
-  border-radius: 12px;
-  padding: 14px;
-  margin: 16px 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text);
-}
-.btn-full {
-  width: 100%;
-  padding: 14px;
-  border-radius: 14px;
-  background: var(--primary);
-  color: white;
-  border: none;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 8px;
-}
 
 /* === TASK DETAIL === */
-.detail-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.back-btn { background: none; border: none; font-size: 22px; color: var(--primary); cursor: pointer; }
+.detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.back-btn { background: none; border: none; font-size: 28px; color: var(--primary); cursor: pointer; line-height: 1; }
 .detail-project-title { font-size: 22px; font-weight: 700; }
-.detail-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.detail-meta .badge {
-  font-size: 13px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-weight: 500;
-}
+.detail-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.badge { font-size: 13px; padding: 4px 10px; border-radius: 8px; font-weight: 500; }
 .badge-date { background: #FFF3E0; color: #E65100; }
 .progress-bar { height: 6px; background: #E8E8ED; border-radius: 3px; margin-bottom: 4px; }
-.progress-fill { height: 100%; border-radius: 3px; background: var(--primary); transition: width 0.5s; }
+.progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width 0.5s; }
 .progress-label { font-size: 12px; color: var(--text2); text-align: right; }
 
-/* Subtask tree */
 .tree-node { padding: 8px 0; }
-.tree-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 0;
-  cursor: pointer;
-}
+.tree-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; cursor: pointer; }
 .tree-icon { font-size: 16px; width: 20px; text-align: center; }
 .tree-text { font-size: 15px; color: var(--text); }
 .tree-text.completed { text-decoration: line-through; color: var(--text2); }
 .tree-children { padding-left: 28px; }
 
-.ai-insight {
-  background: var(--primary-light);
-  border-radius: 12px;
-  padding: 14px;
-  margin-top: 16px;
-}
+.ai-insight { background: linear-gradient(135deg, var(--primary-light), #F0E6FF); border-radius: 12px; padding: 14px; margin-top: 16px; }
 .ai-insight p { font-size: 13px; line-height: 1.5; color: var(--text); }
 .ai-insight .actions { display: flex; gap: 8px; margin-top: 10px; }
 
 .add-subtask-btn {
-  width: 100%;
-  padding: 12px;
-  border: 2px dashed var(--text3);
-  border-radius: 12px;
-  background: none;
-  color: var(--text2);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-top: 12px;
+  width: 100%; padding: 12px;
+  border: 2px dashed var(--text3); border-radius: 12px;
+  background: none; color: var(--text2);
+  font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 12px;
 }
 
-/* Scroll */
-.pages::-webkit-scrollbar { display: none; }
-.project-chips::-webkit-scrollbar { display: none; }
+/* === AI CHAT === */
+.chat-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 75%; background: var(--surface);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 30px rgba(0,0,0,0.12);
+  z-index: 60; display: none; flex-direction: column;
+}
+.chat-overlay.open { display: flex; }
+.chat-handle { width: 36px; height: 5px; background: var(--text3); border-radius: 3px; margin: 10px auto 4px; }
+.chat-title { font-size: 17px; font-weight: 700; padding: 8px 20px 12px; display: flex; justify-content: space-between; align-items: center; }
+.chat-close { background: none; border: none; font-size: 22px; color: var(--text2); cursor: pointer; }
+.chat-body { flex: 1; overflow-y: auto; padding: 0 20px; }
+.quick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.quick-chip { background: var(--primary-light); color: var(--primary); border: none; border-radius: 20px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+.chat-msg { margin-bottom: 16px; }
+.chat-msg.user { text-align: right; }
+.chat-msg .bubble { display: inline-block; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; max-width: 85%; text-align: left; }
+.chat-msg.ai .bubble { background: var(--primary-light); color: var(--text); border-bottom-left-radius: 4px; }
+.chat-msg.user .bubble { background: var(--primary); color: white; border-bottom-right-radius: 4px; }
+.chat-msg .actions-inline { margin-top: 8px; display: flex; gap: 8px; }
+.chat-input-bar { display: flex; gap: 8px; padding: 12px 20px 28px; border-top: 0.5px solid var(--border); }
+.chat-input { flex: 1; border: 1.5px solid #E8E8ED; border-radius: 22px; padding: 10px 16px; font-size: 15px; outline: none; background: var(--bg); font-family: inherit; }
+.chat-input:focus { border-color: var(--primary); }
+.chat-send { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); border: none; color: white; font-size: 18px; cursor: pointer; display: grid; place-items: center; }
 
-/* Responsive - direct mobile view */
+/* === EVENING CHECK-IN === */
+.checkin-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); z-index: 70; display: none; align-items: flex-end; }
+.checkin-overlay.open { display: flex; }
+.checkin-modal { background: var(--surface); border-radius: 20px 20px 0 0; padding: 28px 24px 40px; width: 100%; }
+.checkin-title { font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+.checkin-subtitle { font-size: 15px; color: var(--text2); text-align: center; margin-bottom: 24px; }
+.checkin-task { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+.checkin-task .name { font-size: 15px; color: var(--text); }
+.checkin-task .btns { display: flex; gap: 6px; }
+.btn-outline { padding: 6px 12px; border: 1.5px solid var(--primary); border-radius: 8px; background: none; color: var(--primary); font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.btn-text { background: none; border: none; color: var(--text2); font-size: 12px; cursor: pointer; }
+.checkin-ai { background: var(--primary-light); border-radius: 12px; padding: 14px; margin: 16px 0; font-size: 13px; line-height: 1.5; color: var(--text); }
+.btn-full { width: 100%; padding: 14px; border-radius: 14px; background: var(--primary); color: white; border: none; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px; font-family: inherit; }
+
+/* === SETTINGS === */
+.settings-group { margin-bottom: 20px; }
+.settings-group-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; padding-left: 4px; }
+.settings-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 0.5px solid var(--border);
+  cursor: pointer;
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-row:active { background: #F5F5F7; }
+.setting-left { display: flex; align-items: center; gap: 12px; }
+.setting-icon {
+  width: 30px; height: 30px; border-radius: 7px;
+  display: grid; place-items: center;
+  font-size: 15px; color: white;
+}
+.setting-label { font-size: 15px; color: var(--text); }
+.setting-right { display: flex; align-items: center; gap: 6px; }
+.setting-value { font-size: 14px; color: var(--text2); }
+.setting-arrow { color: var(--text3); font-size: 14px; }
+
+/* Toggle switch */
+.toggle { position: relative; width: 50px; height: 30px; cursor: pointer; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: #E0E0E0; border-radius: 15px;
+  transition: 0.3s;
+}
+.toggle-slider::before {
+  content: ''; position: absolute;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: white; top: 2px; left: 2px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  transition: 0.3s;
+}
+.toggle input:checked + .toggle-slider { background: var(--primary); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+/* Language selector */
+.lang-toggle {
+  display: flex; background: #F0F0F2; border-radius: 8px; overflow: hidden;
+}
+.lang-btn {
+  padding: 6px 14px; font-size: 13px; font-weight: 600;
+  border: none; cursor: pointer; font-family: inherit;
+  background: transparent; color: var(--text2);
+  transition: all 0.2s;
+}
+.lang-btn.active { background: var(--primary); color: white; border-radius: 8px; }
+
+/* === SUBSCRIPTION === */
+.sub-hero {
+  text-align: center; padding: 20px 0;
+}
+.sub-hero .icon { font-size: 56px; margin-bottom: 12px; }
+.sub-hero h2 { font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.sub-hero p { font-size: 14px; color: var(--text2); line-height: 1.5; }
+
+.plan-card {
+  background: var(--surface); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 20px; margin-bottom: 12px;
+  border: 2px solid transparent; cursor: pointer; transition: all 0.2s;
+  position: relative;
+}
+.plan-card.selected { border-color: var(--primary); }
+.plan-card.popular::before {
+  content: 'BEST VALUE'; position: absolute; top: -10px; right: 16px;
+  background: var(--accent); color: white;
+  padding: 2px 10px; border-radius: 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+}
+.plan-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.plan-name { font-size: 18px; font-weight: 700; color: var(--text); }
+.plan-price { font-size: 24px; font-weight: 800; color: var(--primary); }
+.plan-price small { font-size: 13px; font-weight: 400; color: var(--text2); }
+.plan-features { list-style: none; }
+.plan-features li { font-size: 13px; color: var(--text2); padding: 4px 0; display: flex; align-items: center; gap: 6px; }
+.plan-features li::before { content: '✓'; color: var(--accent); font-weight: 700; }
+
+.plan-radio {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--text3); flex-shrink: 0;
+  display: grid; place-items: center;
+}
+.plan-card.selected .plan-radio { border-color: var(--primary); background: var(--primary); }
+.plan-card.selected .plan-radio::after { content: '✓'; color: white; font-size: 12px; font-weight: 700; }
+
+.sub-features { margin: 20px 0; }
+.sub-feature-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+.sub-feature-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--primary-light); display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+.sub-feature-text .title { font-size: 14px; font-weight: 600; color: var(--text); }
+.sub-feature-text .desc { font-size: 12px; color: var(--text2); }
+
+.restore-link { text-align: center; font-size: 13px; color: var(--text2); margin-top: 12px; cursor: pointer; }
+.restore-link span { text-decoration: underline; }
+
+/* === API KEY === */
+.api-input-group { margin-bottom: 16px; }
+.api-label { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 6px; display: block; }
+.api-input {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid #E0E0E0; border-radius: 12px;
+  font-size: 14px; font-family: 'SF Mono', monospace;
+  background: var(--bg); outline: none;
+}
+.api-input:focus { border-color: var(--primary); }
+.api-input::placeholder { color: var(--text3); font-family: inherit; }
+.api-hint { font-size: 12px; color: var(--text2); margin-top: 4px; line-height: 1.4; }
+.api-status { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; }
+.api-dot { width: 8px; height: 8px; border-radius: 50%; }
+.api-dot.ok { background: var(--accent); }
+.api-dot.err { background: var(--danger); }
+.api-dot.none { background: var(--text3); }
+
+.model-select {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid #E0E0E0; border-radius: 12px;
+  font-size: 14px; background: var(--bg);
+  color: var(--text); outline: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238E8E93' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center;
+}
+
+/* === NOTIFICATIONS === */
+.notif-preview {
+  background: var(--primary-light); border-radius: 14px;
+  padding: 14px; margin-bottom: 16px;
+}
+.notif-preview-title { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 6px; }
+.notif-preview-body { font-size: 12px; color: var(--text2); line-height: 1.4; }
+
+/* Responsive */
 @media (max-width: 420px) {
   body { padding: 0; }
-  .phone {
-    width: 100vw;
-    height: 100vh;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-  }
+  .phone { width: 100vw; height: 100vh; border-radius: 0; border: none; box-shadow: none; }
   .island { display: none; }
 }
 </style>
 </head>
 <body>
-
 <div class="phone">
   <div class="island"></div>
-  <div class="status-bar">
-    <span>9:41</span>
-    <span>●●●● 5G  🔋 84%</span>
-  </div>
+  <div class="status-bar"><span>9:41</span><span>●●●● 5G  🔋 84%</span></div>
 
-  <!-- ==================== HOME ==================== -->
   <div class="pages">
+
+    <!-- ========== HOME ========== -->
     <div class="page active" id="page-home">
-      <div class="home-header">
-        <div class="home-date">
-          <small>Saturday</small>
-          March 8
-        </div>
-        <button class="settings-btn" onclick="toggleCheckin()">⚙️</button>
+      <div class="page-header">
+        <div class="home-date"><small>Saturday</small>March 8</div>
+        <button class="icon-btn" onclick="showPage('settings')">⚙️</button>
       </div>
 
       <div class="ai-greeting">
         <span class="sparkle">✨</span>
-        <p>3 tasks left today. You're ahead on TOEFL vocab — keep the streak alive this afternoon!</p>
+        <p>3 tasks left today. You're ahead on TOEFL vocab — keep the streak alive!</p>
         <button class="dismiss" onclick="this.parentElement.style.display='none'">✕</button>
       </div>
 
@@ -574,72 +445,55 @@ body {
           <div class="task-check"></div>
           <div class="task-info">
             <div class="task-title">Review Essay Draft</div>
-            <div class="task-meta">
-              <span>📅 Due today</span>
-              <span>↳ 2 subtasks</span>
-            </div>
+            <div class="task-meta"><span>📅 Due today</span><span>↳ 2 subtasks</span></div>
           </div>
           <span class="chevron">›</span>
         </div>
         <div class="task-item">
-          <div class="task-check" onclick="toggleTask(this)"></div>
+          <div class="task-check" onclick="event.stopPropagation();toggleTask(this)"></div>
           <div class="task-info">
             <div class="task-title">100 Vocab Words</div>
-            <div class="task-meta">
-              <span class="streak-badge">🔥 12-day streak</span>
-              <span>Daily routine</span>
-            </div>
+            <div class="task-meta"><span class="streak-badge">🔥 12-day streak</span></div>
           </div>
           <span class="chevron">›</span>
         </div>
         <div class="task-item">
-          <div class="task-check" onclick="toggleTask(this)"></div>
+          <div class="task-check" onclick="event.stopPropagation();toggleTask(this)"></div>
           <div class="task-info">
             <div class="task-title">Listening Practice 30min</div>
-            <div class="task-meta">
-              <span class="streak-badge">🔥 8 days</span>
-            </div>
+            <div class="task-meta"><span class="streak-badge">🔥 8 days</span></div>
           </div>
           <span class="chevron">›</span>
         </div>
       </div>
 
-      <div class="section-title">
-        Routines
-        <span style="color:var(--primary);font-size:14px;font-weight:700">56%</span>
-      </div>
+      <div class="section-title">Routines <span style="color:var(--primary);font-size:14px;font-weight:700">56%</span></div>
       <div class="card">
         <div class="routine-ring-section">
           <div class="ring-container">
             <svg width="56" height="56" viewBox="0 0 56 56">
               <circle class="ring-bg" cx="28" cy="28" r="22"/>
-              <circle class="ring-fill" cx="28" cy="28" r="22"
-                stroke-dasharray="138"
-                stroke-dashoffset="61"/>
+              <circle class="ring-fill" cx="28" cy="28" r="22" stroke-dasharray="138" stroke-dashoffset="61"/>
             </svg>
             <span class="ring-label">4/7</span>
           </div>
-          <div class="ring-text">
-            <strong>4 of 7</strong> routines done today<br>
-            <span style="font-size:12px">Reading & Gym remaining</span>
-          </div>
+          <div class="ring-text"><strong>4 of 7</strong> routines done<br><span style="font-size:12px">Reading & Gym left</span></div>
         </div>
       </div>
     </div>
 
-    <!-- ==================== TASKS ==================== -->
+    <!-- ========== TASKS ========== -->
     <div class="page" id="page-tasks">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h2 style="font-size:28px;font-weight:700">Tasks</h2>
-        <button style="width:32px;height:32px;border-radius:50%;background:var(--primary);border:none;color:white;font-size:18px;cursor:pointer">+</button>
+      <div class="page-header">
+        <h2 class="page-title">Tasks</h2>
+        <button class="icon-btn" style="background:var(--primary);color:white;font-size:20px;box-shadow:0 4px 12px rgba(124,58,237,0.3)">+</button>
       </div>
-
       <div class="section-title">Projects</div>
       <div class="project-chips">
         <div class="project-chip" onclick="showPage('detail')">
           <div class="name">🎯 TOEFL Prep</div>
           <div class="bar"><div class="bar-fill" style="width:68%"></div></div>
-          <div class="pct">68% · 29 days left</div>
+          <div class="pct">68% · 7 days left</div>
         </div>
         <div class="project-chip">
           <div class="name">📝 Research Paper</div>
@@ -652,144 +506,68 @@ body {
           <div class="pct">15% · Ongoing</div>
         </div>
       </div>
-
       <div class="section-title">Inbox <span style="font-weight:400;color:var(--text3)">(3)</span></div>
       <div class="card" style="padding:4px 16px">
-        <div class="task-item">
-          <div class="task-check" onclick="toggleTask(this)"></div>
-          <div class="task-info"><div class="task-title">Buy TOEFL textbook</div></div>
-        </div>
-        <div class="task-item">
-          <div class="task-check" onclick="toggleTask(this)"></div>
-          <div class="task-info"><div class="task-title">Email professor about recommendation</div></div>
-        </div>
-        <div class="task-item">
-          <div class="task-check" onclick="toggleTask(this)"></div>
-          <div class="task-info"><div class="task-title">Schedule study group</div></div>
-        </div>
+        <div class="task-item"><div class="task-check" onclick="toggleTask(this)"></div><div class="task-info"><div class="task-title">Buy TOEFL textbook</div></div></div>
+        <div class="task-item"><div class="task-check" onclick="toggleTask(this)"></div><div class="task-info"><div class="task-title">Email professor</div></div></div>
+        <div class="task-item"><div class="task-check" onclick="toggleTask(this)"></div><div class="task-info"><div class="task-title">Schedule study group</div></div></div>
       </div>
-
       <div class="section-title">Completed Today <span style="font-weight:400;color:var(--text3)">(2)</span></div>
       <div class="card" style="padding:4px 16px">
-        <div class="task-item">
-          <div class="task-check done"></div>
-          <div class="task-info"><div class="task-title done-text">Submit homework</div></div>
-        </div>
-        <div class="task-item">
-          <div class="task-check done"></div>
-          <div class="task-info"><div class="task-title done-text">Read Chapter 5</div></div>
-        </div>
+        <div class="task-item"><div class="task-check done"></div><div class="task-info"><div class="task-title done-text">Submit homework</div></div></div>
+        <div class="task-item"><div class="task-check done"></div><div class="task-info"><div class="task-title done-text">Read Chapter 5</div></div></div>
       </div>
     </div>
 
-    <!-- ==================== ROUTINES ==================== -->
+    <!-- ========== ROUTINES ========== -->
     <div class="page" id="page-routines">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h2 style="font-size:28px;font-weight:700">Routines</h2>
-        <button style="width:32px;height:32px;border-radius:50%;background:var(--primary);border:none;color:white;font-size:18px;cursor:pointer">+</button>
+      <div class="page-header">
+        <h2 class="page-title">Routines</h2>
+        <button class="icon-btn" style="background:var(--primary);color:white;font-size:20px;box-shadow:0 4px 12px rgba(124,58,237,0.3)">+</button>
       </div>
-
       <div class="section-title">Daily</div>
       <div class="routine-card">
-        <div class="routine-header">
-          <span class="routine-title">📚 100 Vocab Words</span>
-          <span class="streak-pill">🔥 12</span>
-        </div>
-        <div class="week-dots">
-          <div class="dot filled">M</div>
-          <div class="dot filled">T</div>
-          <div class="dot filled">W</div>
-          <div class="dot filled">T</div>
-          <div class="dot filled">F</div>
-          <div class="dot today">S</div>
-          <div class="dot empty">S</div>
-        </div>
+        <div class="routine-header"><span class="routine-title">📚 100 Vocab Words</span><span class="streak-pill">🔥 12</span></div>
+        <div class="week-dots"><div class="dot filled">M</div><div class="dot filled">T</div><div class="dot filled">W</div><div class="dot filled">T</div><div class="dot filled">F</div><div class="dot today">S</div><div class="dot empty">S</div></div>
         <div class="routine-best">🏆 Best: 18 days</div>
       </div>
-
       <div class="routine-card">
-        <div class="routine-header">
-          <span class="routine-title">🎧 Listening 30min</span>
-          <span class="streak-pill">🔥 8</span>
-        </div>
-        <div class="week-dots">
-          <div class="dot filled">M</div>
-          <div class="dot filled">T</div>
-          <div class="dot filled">W</div>
-          <div class="dot empty">T</div>
-          <div class="dot filled">F</div>
-          <div class="dot today">S</div>
-          <div class="dot empty">S</div>
-        </div>
+        <div class="routine-header"><span class="routine-title">🎧 Listening 30min</span><span class="streak-pill">🔥 8</span></div>
+        <div class="week-dots"><div class="dot filled">M</div><div class="dot filled">T</div><div class="dot filled">W</div><div class="dot empty">T</div><div class="dot filled">F</div><div class="dot today">S</div><div class="dot empty">S</div></div>
         <div class="routine-best">🏆 Best: 14 days</div>
       </div>
-
       <div class="routine-card">
-        <div class="routine-header">
-          <span class="routine-title">💪 Gym Workout</span>
-          <span class="streak-pill">🔥 5</span>
-        </div>
-        <div class="week-dots">
-          <div class="dot filled">M</div>
-          <div class="dot empty">T</div>
-          <div class="dot filled">W</div>
-          <div class="dot empty">T</div>
-          <div class="dot filled">F</div>
-          <div class="dot today">S</div>
-          <div class="dot empty">S</div>
-        </div>
+        <div class="routine-header"><span class="routine-title">💪 Gym Workout</span><span class="streak-pill">🔥 5</span></div>
+        <div class="week-dots"><div class="dot filled">M</div><div class="dot empty">T</div><div class="dot filled">W</div><div class="dot empty">T</div><div class="dot filled">F</div><div class="dot today">S</div><div class="dot empty">S</div></div>
         <div class="routine-best">🏆 Best: 9 days</div>
       </div>
-
       <div class="section-title">Schedule</div>
       <div class="card">
         <div class="schedule-grid">
-          <div class="sched-header">Mon</div>
-          <div class="sched-header">Tue</div>
-          <div class="sched-header">Wed</div>
-          <div class="sched-header">Thu</div>
-          <div class="sched-header">Fri</div>
-          <div class="sched-cell has-class">CS 101</div>
-          <div class="sched-cell empty-class">—</div>
-          <div class="sched-cell has-class">CS 101</div>
-          <div class="sched-cell empty-class">—</div>
-          <div class="sched-cell has-class">CS 101</div>
-          <div class="sched-cell has-class">ENG</div>
-          <div class="sched-cell has-class">MTH</div>
-          <div class="sched-cell has-class">ENG</div>
-          <div class="sched-cell has-class">MTH</div>
-          <div class="sched-cell empty-class">—</div>
+          <div class="sched-header">Mon</div><div class="sched-header">Tue</div><div class="sched-header">Wed</div><div class="sched-header">Thu</div><div class="sched-header">Fri</div>
+          <div class="sched-cell has-class">CS 101</div><div class="sched-cell empty-class">—</div><div class="sched-cell has-class">CS 101</div><div class="sched-cell empty-class">—</div><div class="sched-cell has-class">CS 101</div>
+          <div class="sched-cell has-class">ENG</div><div class="sched-cell has-class">MTH</div><div class="sched-cell has-class">ENG</div><div class="sched-cell has-class">MTH</div><div class="sched-cell empty-class">—</div>
         </div>
       </div>
-
       <div class="ai-suggestion">
         <p>🤖 You finish vocab faster in the morning. Move it to 8am?</p>
-        <div class="actions">
-          <button class="btn-sm btn-primary">Apply</button>
-          <button class="btn-sm btn-ghost">Not now</button>
-        </div>
+        <div class="actions"><button class="btn-sm btn-primary">Apply</button><button class="btn-sm btn-ghost">Not now</button></div>
       </div>
     </div>
 
-    <!-- ==================== TASK DETAIL ==================== -->
+    <!-- ========== TASK DETAIL ========== -->
     <div class="page" id="page-detail">
       <div class="detail-header">
         <button class="back-btn" onclick="showPage('home')">‹</button>
         <span class="detail-project-title">TOEFL Preparation</span>
       </div>
-      <div class="detail-meta">
-        <span class="badge badge-date">📅 Mar 15 · 7 days</span>
-      </div>
+      <div class="detail-meta"><span class="badge badge-date">📅 Mar 15 · 7 days</span></div>
       <div class="progress-bar"><div class="progress-fill" style="width:68%"></div></div>
       <div class="progress-label">68% complete</div>
-
       <div class="section-title" style="margin-top:20px">Subtask Tree</div>
       <div class="card" style="padding:12px 16px">
         <div class="tree-node">
-          <div class="tree-row">
-            <span class="tree-icon">📚</span>
-            <span class="tree-text" style="font-weight:600">Vocabulary</span>
-          </div>
+          <div class="tree-row"><span class="tree-icon">📚</span><span class="tree-text" style="font-weight:600">Vocabulary</span></div>
           <div class="tree-children">
             <div class="tree-row"><span class="tree-icon">✅</span><span class="tree-text completed">Week 1 — 500 words</span></div>
             <div class="tree-row"><span class="tree-icon">🔄</span><span class="tree-text">Week 2 — 3/7 days</span></div>
@@ -797,19 +575,11 @@ body {
           </div>
         </div>
         <div class="tree-node">
-          <div class="tree-row">
-            <span class="tree-icon">🎧</span>
-            <span class="tree-text" style="font-weight:600">Listening</span>
-          </div>
-          <div class="tree-children">
-            <div class="tree-row"><span class="tree-icon">🔄</span><span class="tree-text">Daily 30min practice</span></div>
-          </div>
+          <div class="tree-row"><span class="tree-icon">🎧</span><span class="tree-text" style="font-weight:600">Listening</span></div>
+          <div class="tree-children"><div class="tree-row"><span class="tree-icon">🔄</span><span class="tree-text">Daily 30min practice</span></div></div>
         </div>
         <div class="tree-node">
-          <div class="tree-row">
-            <span class="tree-icon">📝</span>
-            <span class="tree-text" style="font-weight:600">Mock Tests</span>
-          </div>
+          <div class="tree-row"><span class="tree-icon">📝</span><span class="tree-text" style="font-weight:600">Mock Tests</span></div>
           <div class="tree-children">
             <div class="tree-row"><span class="tree-icon">○</span><span class="tree-text">Mock #1 — Feb 20</span></div>
             <div class="tree-row"><span class="tree-icon">○</span><span class="tree-text">Mock #2 — Mar 1</span></div>
@@ -817,56 +587,603 @@ body {
           </div>
         </div>
       </div>
-
       <div class="ai-insight">
-        <p>🤖 You're 2 days behind on vocab. Add 20 extra words/day to catch up by Mock #2?</p>
-        <div class="actions">
-          <button class="btn-sm btn-primary">Yes, adjust</button>
-          <button class="btn-sm btn-ghost">Skip</button>
+        <p>🤖 You're 2 days behind on vocab. Add 20 extra words/day to catch up?</p>
+        <div class="actions"><button class="btn-sm btn-primary">Yes, adjust</button><button class="btn-sm btn-ghost">Skip</button></div>
+      </div>
+      <button class="add-subtask-btn">+ Add Subtask</button>
+    </div>
+
+    <!-- ========== SETTINGS ========== -->
+    <div class="page" id="page-settings">
+      <div class="page-header">
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="back-btn" onclick="showPage('home')">‹</button>
+          <h2 class="page-title">Settings</h2>
         </div>
       </div>
 
-      <button class="add-subtask-btn">+ Add Subtask</button>
+      <!-- Profile -->
+      <div class="settings-group">
+        <div class="settings-card">
+          <div class="setting-row" onclick="showPage('subscription')">
+            <div class="setting-left">
+              <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:grid;place-items:center;font-size:22px;color:white">C</div>
+              <div>
+                <div style="font-size:17px;font-weight:600">Charlotte</div>
+                <div style="font-size:13px;color:var(--accent);font-weight:600">Free Plan · Upgrade →</div>
+              </div>
+            </div>
+            <span class="setting-arrow">›</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- General -->
+      <div class="settings-group">
+        <div class="settings-group-title">General</div>
+        <div class="settings-card">
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#007AFF">🌐</div>
+              <span class="setting-label">Language</span>
+            </div>
+            <div class="lang-toggle">
+              <button class="lang-btn active" onclick="setLang(this,'EN')">EN</button>
+              <button class="lang-btn" onclick="setLang(this,'中文')">中文</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#FF9500">🎨</div>
+              <span class="setting-label">Appearance</span>
+            </div>
+            <div class="setting-right">
+              <span class="setting-value">System</span>
+              <span class="setting-arrow">›</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:var(--primary)">🎵</div>
+              <span class="setting-label">Sounds & Haptics</span>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#34C759">📅</div>
+              <span class="setting-label">Week Starts On</span>
+            </div>
+            <div class="setting-right">
+              <span class="setting-value">Monday</span>
+              <span class="setting-arrow">›</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#5856D6">🕐</div>
+              <span class="setting-label">Time Zone</span>
+            </div>
+            <div class="setting-right">
+              <span class="setting-value">GMT+8</span>
+              <span class="setting-arrow">›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI -->
+      <div class="settings-group">
+        <div class="settings-group-title">AI Engine</div>
+        <div class="settings-card">
+          <div class="setting-row" onclick="showPage('apikey')">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#FF2D55">🔑</div>
+              <span class="setting-label">Custom API Key</span>
+            </div>
+            <div class="setting-right">
+              <span class="setting-value" style="color:var(--accent)">BYOK Active</span>
+              <span class="setting-arrow">›</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#AF52DE">🤖</div>
+              <span class="setting-label">AI Model</span>
+            </div>
+            <div class="setting-right">
+              <span class="setting-value">Claude Sonnet</span>
+              <span class="setting-arrow">›</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#FF9500">💬</div>
+              <span class="setting-label">AI Personality</span>
+            </div>
+            <div class="setting-right">
+              <span class="setting-value">Friendly Coach</span>
+              <span class="setting-arrow">›</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#5AC8FA">📊</div>
+              <span class="setting-label">AI Usage</span>
+            </div>
+            <div class="setting-right">
+              <span class="setting-value">1,247 msgs</span>
+              <span class="setting-arrow">›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="settings-group">
+        <div class="settings-group-title">Notifications</div>
+        <div class="settings-card">
+          <div class="setting-row" onclick="showPage('notifications')">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#FF3B30">🔔</div>
+              <span class="setting-label">Push Notifications</span>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#FF9500">🌅</div>
+              <span class="setting-label">Morning Brief</span>
+            </div>
+            <div class="setting-right">
+              <span class="setting-value">8:00 AM</span>
+              <span class="setting-arrow">›</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#5856D6">🌙</div>
+              <span class="setting-label">Evening Check-in</span>
+            </div>
+            <div class="setting-right">
+              <span class="setting-value">9:00 PM</span>
+              <span class="setting-arrow">›</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:var(--streak)">🔥</div>
+              <span class="setting-label">Streak Reminders</span>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#34C759">📌</div>
+              <span class="setting-label">Deadline Alerts</span>
+            </div>
+            <div class="setting-right">
+              <span class="setting-value">1 day before</span>
+              <span class="setting-arrow">›</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:var(--primary)">🤖</div>
+              <span class="setting-label">AI Nudges</span>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data -->
+      <div class="settings-group">
+        <div class="settings-group-title">Data & Privacy</div>
+        <div class="settings-card">
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#007AFF">☁️</div>
+              <span class="setting-label">iCloud Sync</span>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#34C759">📱</div>
+              <span class="setting-label">Calendar Integration</span>
+            </div>
+            <div class="setting-right">
+              <span class="setting-value">Apple Calendar</span>
+              <span class="setting-arrow">›</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#8E8E93">📤</div>
+              <span class="setting-label">Export Data</span>
+            </div>
+            <div class="setting-right"><span class="setting-arrow">›</span></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#FF3B30">🗑️</div>
+              <span class="setting-label" style="color:var(--danger)">Delete Account</span>
+            </div>
+            <div class="setting-right"><span class="setting-arrow">›</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- About -->
+      <div class="settings-group">
+        <div class="settings-group-title">About</div>
+        <div class="settings-card">
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:var(--primary)">⭐</div>
+              <span class="setting-label">Rate Flux</span>
+            </div>
+            <div class="setting-right"><span class="setting-arrow">›</span></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#FF9500">💡</div>
+              <span class="setting-label">Send Feedback</span>
+            </div>
+            <div class="setting-right"><span class="setting-arrow">›</span></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#5856D6">🐦</div>
+              <span class="setting-label">Follow @FluxApp</span>
+            </div>
+            <div class="setting-right"><span class="setting-arrow">›</span></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#8E8E93">📋</div>
+              <span class="setting-label">Privacy Policy</span>
+            </div>
+            <div class="setting-right"><span class="setting-arrow">›</span></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-icon" style="background:#8E8E93">📋</div>
+              <span class="setting-label">Terms of Service</span>
+            </div>
+            <div class="setting-right"><span class="setting-arrow">›</span></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left"><span class="setting-label" style="color:var(--text2)">Version</span></div>
+            <span class="setting-value">1.0.0 (42)</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:20px"></div>
     </div>
+
+    <!-- ========== SUBSCRIPTION ========== -->
+    <div class="page" id="page-subscription">
+      <div class="page-header">
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="back-btn" onclick="showPage('settings')">‹</button>
+          <h2 class="page-title">Flux Pro</h2>
+        </div>
+      </div>
+
+      <div class="sub-hero">
+        <div class="icon">🚀</div>
+        <h2>Unlock Your Full Potential</h2>
+        <p>AI-powered planning, unlimited tasks, and smart coaching.</p>
+      </div>
+
+      <!-- Features -->
+      <div class="sub-features">
+        <div class="sub-feature-row">
+          <div class="sub-feature-icon">🤖</div>
+          <div class="sub-feature-text"><div class="title">Unlimited AI Conversations</div><div class="desc">Ask Flux anything, anytime. No daily limits.</div></div>
+        </div>
+        <div class="sub-feature-row">
+          <div class="sub-feature-icon">🧠</div>
+          <div class="sub-feature-text"><div class="title">Smart Coaching</div><div class="desc">AI learns your patterns and proactively optimizes your schedule.</div></div>
+        </div>
+        <div class="sub-feature-row">
+          <div class="sub-feature-icon">🔑</div>
+          <div class="sub-feature-text"><div class="title">Bring Your Own Key</div><div class="desc">Use your Claude/GPT API key for unlimited, private AI.</div></div>
+        </div>
+        <div class="sub-feature-row">
+          <div class="sub-feature-icon">📊</div>
+          <div class="sub-feature-text"><div class="title">Advanced Analytics</div><div class="desc">Weekly reports, habit insights, and productivity trends.</div></div>
+        </div>
+        <div class="sub-feature-row">
+          <div class="sub-feature-icon">🎨</div>
+          <div class="sub-feature-text"><div class="title">Themes & Customization</div><div class="desc">Custom colors, icons, and app appearance.</div></div>
+        </div>
+      </div>
+
+      <!-- Plans -->
+      <div class="section-title">Choose Your Plan</div>
+      <div class="plan-card" onclick="selectPlan(this)">
+        <div class="plan-header">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="plan-radio"></div>
+            <div class="plan-name">Monthly</div>
+          </div>
+          <div class="plan-price">¥49<small>/mo</small></div>
+        </div>
+        <ul class="plan-features">
+          <li>Full AI access</li>
+          <li>Cancel anytime</li>
+        </ul>
+      </div>
+
+      <div class="plan-card popular selected" onclick="selectPlan(this)">
+        <div class="plan-header">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="plan-radio"></div>
+            <div class="plan-name">Annual</div>
+          </div>
+          <div class="plan-price">¥399<small>/yr</small></div>
+        </div>
+        <ul class="plan-features">
+          <li>Save 32% vs monthly</li>
+          <li>¥33/mo billed annually</li>
+          <li>Priority AI model access</li>
+        </ul>
+      </div>
+
+      <div class="plan-card" onclick="selectPlan(this)">
+        <div class="plan-header">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="plan-radio"></div>
+            <div class="plan-name">Lifetime</div>
+          </div>
+          <div class="plan-price">¥999<small>once</small></div>
+        </div>
+        <ul class="plan-features">
+          <li>Pay once, own forever</li>
+          <li>All future updates included</li>
+          <li>Lifetime BYOK access</li>
+        </ul>
+      </div>
+
+      <button class="btn-full" style="margin-top:16px;background:linear-gradient(135deg,var(--primary),var(--primary-dark))">
+        Start 7-Day Free Trial
+      </button>
+      <div class="restore-link">Already subscribed? <span>Restore Purchase</span></div>
+      <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:8px;line-height:1.4">
+        Payment will be charged to your Apple ID account. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period.
+      </div>
+      <div style="height:20px"></div>
+    </div>
+
+    <!-- ========== API KEY ========== -->
+    <div class="page" id="page-apikey">
+      <div class="page-header">
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="back-btn" onclick="showPage('settings')">‹</button>
+          <h2 class="page-title">API Key</h2>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="text-align:center;margin-bottom:16px">
+          <div style="font-size:40px;margin-bottom:8px">🔑</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text)">Bring Your Own Key</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:4px">Use your own API key for unlimited, private AI conversations. Your key is stored on-device only.</div>
+        </div>
+      </div>
+
+      <div class="section-title">Provider</div>
+      <div class="card">
+        <div class="api-input-group">
+          <label class="api-label">AI Provider</label>
+          <select class="model-select" onchange="updateModelOptions(this.value)">
+            <option value="anthropic">Anthropic (Claude)</option>
+            <option value="openai">OpenAI (GPT)</option>
+            <option value="google">Google (Gemini)</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="zhipu">智谱 (GLM)</option>
+          </select>
+        </div>
+
+        <div class="api-input-group">
+          <label class="api-label">API Key</label>
+          <input class="api-input" type="password" placeholder="sk-ant-..." value="sk-ant-•••••••••••••JoNY">
+          <div class="api-status">
+            <span class="api-dot ok"></span>
+            <span style="color:var(--accent);font-weight:500">Connected · Valid key</span>
+          </div>
+        </div>
+
+        <div class="api-input-group">
+          <label class="api-label">Model</label>
+          <select class="model-select" id="modelSelect">
+            <option>claude-sonnet-4-6 (Recommended)</option>
+            <option>claude-opus-4-6 (Most capable)</option>
+            <option>claude-haiku-4-5 (Fastest)</option>
+          </select>
+          <div class="api-hint">Sonnet is the best balance of speed and intelligence for daily use.</div>
+        </div>
+
+        <div class="api-input-group">
+          <label class="api-label">Base URL (Optional)</label>
+          <input class="api-input" type="url" placeholder="https://api.anthropic.com">
+          <div class="api-hint">Leave empty to use the default endpoint. Only change if using a proxy or self-hosted model.</div>
+        </div>
+      </div>
+
+      <div class="section-title">Usage This Month</div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:14px;color:var(--text2)">API Calls</span>
+          <span style="font-size:16px;font-weight:700;color:var(--text)">1,247</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:14px;color:var(--text2)">Tokens Used</span>
+          <span style="font-size:16px;font-weight:700;color:var(--text)">842K</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:14px;color:var(--text2)">Est. Cost</span>
+          <span style="font-size:16px;font-weight:700;color:var(--primary)">$3.28</span>
+        </div>
+      </div>
+
+      <button class="btn-full" style="background:var(--primary)">Test Connection</button>
+      <button class="btn-full" style="background:transparent;color:var(--danger);border:1.5px solid var(--danger);margin-top:8px">Remove Key</button>
+      <div style="height:20px"></div>
+    </div>
+
+    <!-- ========== NOTIFICATIONS DETAIL ========== -->
+    <div class="page" id="page-notifications">
+      <div class="page-header">
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="back-btn" onclick="showPage('settings')">‹</button>
+          <h2 class="page-title">Notifications</h2>
+        </div>
+      </div>
+
+      <div class="notif-preview">
+        <div class="notif-preview-title">📱 Preview</div>
+        <div class="notif-preview-body">
+          <strong>Flux</strong> — Good morning! 4 tasks today. Start with "Review Essay Draft" (due today). Your vocab streak is at 12 days 🔥
+        </div>
+      </div>
+
+      <div class="section-title">Schedule</div>
+      <div class="settings-card">
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon" style="background:#FF9500">🌅</div>
+            <div>
+              <span class="setting-label">Morning Brief</span>
+              <div style="font-size:12px;color:var(--text2)">Daily overview of tasks and routines</div>
+            </div>
+          </div>
+          <div class="setting-right">
+            <span class="setting-value">8:00 AM</span>
+            <span class="setting-arrow">›</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon" style="background:#5856D6">🌙</div>
+            <div>
+              <span class="setting-label">Evening Check-in</span>
+              <div style="font-size:12px;color:var(--text2)">Review + reschedule incomplete tasks</div>
+            </div>
+          </div>
+          <div class="setting-right">
+            <span class="setting-value">9:00 PM</span>
+            <span class="setting-arrow">›</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon" style="background:#007AFF">📊</div>
+            <div>
+              <span class="setting-label">Weekly Report</span>
+              <div style="font-size:12px;color:var(--text2)">Productivity stats every Sunday</div>
+            </div>
+          </div>
+          <div class="setting-right">
+            <span class="setting-value">Sun 10 AM</span>
+            <span class="setting-arrow">›</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">Smart Alerts</div>
+      <div class="settings-card">
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon" style="background:var(--streak)">🔥</div>
+            <div>
+              <span class="setting-label">Streak at Risk</span>
+              <div style="font-size:12px;color:var(--text2)">Alert when a streak might break</div>
+            </div>
+          </div>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon" style="background:#FF3B30">⏰</div>
+            <div>
+              <span class="setting-label">Deadline Approaching</span>
+              <div style="font-size:12px;color:var(--text2)">1 day, 3 days, or 7 days before</div>
+            </div>
+          </div>
+          <div class="setting-right">
+            <span class="setting-value">1 day</span>
+            <span class="setting-arrow">›</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon" style="background:var(--primary)">🤖</div>
+            <div>
+              <span class="setting-label">AI Nudges</span>
+              <div style="font-size:12px;color:var(--text2)">Smart reminders based on your patterns</div>
+            </div>
+          </div>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon" style="background:#34C759">🎉</div>
+            <div>
+              <span class="setting-label">Achievement Alerts</span>
+              <div style="font-size:12px;color:var(--text2)">Celebrate streaks and milestones</div>
+            </div>
+          </div>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <div class="section-title">Quiet Hours</div>
+      <div class="settings-card">
+        <div class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon" style="background:#8E8E93">🔕</div>
+            <span class="setting-label">Do Not Disturb</span>
+          </div>
+          <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-left"><span class="setting-label" style="padding-left:42px">From</span></div>
+          <span class="setting-value">11:00 PM</span>
+        </div>
+        <div class="setting-row">
+          <div class="setting-left"><span class="setting-label" style="padding-left:42px">Until</span></div>
+          <span class="setting-value">7:00 AM</span>
+        </div>
+      </div>
+      <div style="height:20px"></div>
+    </div>
+
   </div>
 
-  <!-- Floating AI pill (Home only) -->
-  <button class="ai-pill" id="aiPill" onclick="toggleChat()">
-    ✨ Ask Flux
-  </button>
+  <!-- Floating AI pill -->
+  <button class="ai-pill" id="aiPill" onclick="toggleChat()">✨ Ask Flux</button>
 
-  <!-- ==================== AI CHAT ==================== -->
+  <!-- AI Chat overlay -->
   <div class="chat-overlay" id="chatOverlay">
     <div class="chat-handle"></div>
-    <div class="chat-title">
-      Flux AI
-      <button class="chat-close" onclick="toggleChat()">✕</button>
-    </div>
+    <div class="chat-title">Flux AI<button class="chat-close" onclick="toggleChat()">✕</button></div>
     <div class="chat-body">
-      <div class="chat-msg ai">
-        <div class="bubble">What do you need help with? 🚀</div>
-      </div>
+      <div class="chat-msg ai"><div class="bubble">What do you need help with? 🚀</div></div>
       <div class="quick-actions">
         <button class="quick-chip" onclick="simulateChat()">Plan my week</button>
         <button class="quick-chip">Break down a goal</button>
         <button class="quick-chip">Reschedule today</button>
       </div>
-      <div class="chat-msg user" id="userMsg" style="display:none">
-        <div class="bubble">I have a TOEFL exam in 30 days</div>
-      </div>
+      <div class="chat-msg user" id="userMsg" style="display:none"><div class="bubble">I have a TOEFL exam in 30 days</div></div>
       <div class="chat-msg ai" id="aiReply" style="display:none">
-        <div class="bubble">
-          Got it! I've created a TOEFL project with:<br><br>
-          • Daily vocab routine (100 words)<br>
-          • Daily listening (30 min)<br>
-          • 3 mock tests scheduled<br>
-          • Essay practice weekly<br><br>
-          Want me to add these to your tasks?
-        </div>
-        <div class="actions-inline">
-          <button class="btn-sm btn-primary">Add all</button>
-          <button class="btn-sm btn-ghost">Let me edit</button>
-        </div>
+        <div class="bubble">Got it! I've created a TOEFL project with:<br><br>• Daily vocab routine (100 words)<br>• Daily listening (30 min)<br>• 3 mock tests scheduled<br>• Essay practice weekly<br><br>Want me to add these?</div>
+        <div class="actions-inline"><button class="btn-sm btn-primary">Add all</button><button class="btn-sm btn-ghost">Let me edit</button></div>
       </div>
     </div>
     <div class="chat-input-bar">
@@ -875,32 +1192,14 @@ body {
     </div>
   </div>
 
-  <!-- ==================== EVENING CHECK-IN ==================== -->
+  <!-- Evening Check-in -->
   <div class="checkin-overlay" id="checkinOverlay">
     <div class="checkin-modal">
       <div class="checkin-title">🌙 Evening Review</div>
       <div class="checkin-subtitle">You completed 5/7 tasks today. Nice work!</div>
-      <div class="checkin-task">
-        <span class="name">Mock Test #1</span>
-        <div class="btns">
-          <button class="btn-outline">→ Tomorrow</button>
-          <button class="btn-text">Skip</button>
-        </div>
-      </div>
-      <div class="checkin-task">
-        <span class="name">Email professor</span>
-        <div class="btns">
-          <button class="btn-outline">→ Tomorrow</button>
-          <button class="btn-text">Skip</button>
-        </div>
-      </div>
-      <div class="checkin-ai">
-        🤖 Mock Test takes ~2h. Saturday morning looks free — schedule then?
-        <div style="margin-top:8px;display:flex;gap:8px">
-          <button class="btn-sm btn-primary">Yes</button>
-          <button class="btn-sm btn-ghost">I'll decide</button>
-        </div>
-      </div>
+      <div class="checkin-task"><span class="name">Mock Test #1</span><div class="btns"><button class="btn-outline">→ Tomorrow</button><button class="btn-text">Skip</button></div></div>
+      <div class="checkin-task"><span class="name">Email professor</span><div class="btns"><button class="btn-outline">→ Tomorrow</button><button class="btn-text">Skip</button></div></div>
+      <div class="checkin-ai">🤖 Mock Test takes ~2h. Saturday morning looks free — schedule then?<div style="margin-top:8px;display:flex;gap:8px"><button class="btn-sm btn-primary">Yes</button><button class="btn-sm btn-ghost">I'll decide</button></div></div>
       <button class="btn-full" onclick="toggleCheckin()">Done for today</button>
     </div>
   </div>
@@ -923,46 +1222,60 @@ body {
 </div>
 
 <script>
+const mainPages = ['home','tasks','routines'];
+const subPages = ['detail','settings','subscription','apikey','notifications'];
+
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-  
-  const pill = document.getElementById('aiPill');
-  
-  if (name === 'detail') {
-    document.getElementById('page-detail').classList.add('active');
-    pill.style.display = 'none';
-    return;
-  }
-  
   document.getElementById('page-' + name).classList.add('active');
+
+  // Update tabs
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
   const tab = document.getElementById('tab-' + name);
   if (tab) tab.classList.add('active');
-  
+
+  // AI pill only on home
+  const pill = document.getElementById('aiPill');
   pill.style.display = name === 'home' ? 'flex' : 'none';
+
+  // Scroll to top
+  document.querySelector('.pages').scrollTop = 0;
 }
 
 function toggleTask(el) {
   el.classList.toggle('done');
-  const title = el.nextElementSibling.querySelector('.task-title');
+  const title = el.closest('.task-item').querySelector('.task-title');
   if (title) title.classList.toggle('done-text');
 }
 
-function toggleChat() {
-  const overlay = document.getElementById('chatOverlay');
-  overlay.classList.toggle('open');
-}
-
-function toggleCheckin() {
-  const overlay = document.getElementById('checkinOverlay');
-  overlay.classList.toggle('open');
-}
+function toggleChat() { document.getElementById('chatOverlay').classList.toggle('open'); }
+function toggleCheckin() { document.getElementById('checkinOverlay').classList.toggle('open'); }
 
 function simulateChat() {
   document.getElementById('userMsg').style.display = 'block';
-  setTimeout(() => {
-    document.getElementById('aiReply').style.display = 'block';
-  }, 800);
+  setTimeout(() => { document.getElementById('aiReply').style.display = 'block'; }, 800);
+}
+
+function selectPlan(el) {
+  document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function setLang(btn, lang) {
+  btn.parentElement.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function updateModelOptions(provider) {
+  const sel = document.getElementById('modelSelect');
+  const models = {
+    anthropic: ['claude-sonnet-4-6 (Recommended)', 'claude-opus-4-6 (Most capable)', 'claude-haiku-4-5 (Fastest)'],
+    openai: ['gpt-5.3-turbo (Recommended)', 'gpt-5.3 (Most capable)', 'gpt-5.3-mini (Fastest)'],
+    google: ['gemini-3-pro (Recommended)', 'gemini-3-ultra (Most capable)', 'gemini-3-flash (Fastest)'],
+    deepseek: ['deepseek-v3 (Recommended)', 'deepseek-r1 (Reasoning)'],
+    zhipu: ['glm-5 (Recommended)', 'glm-4-plus (Balanced)']
+  };
+  sel.innerHTML = (models[provider] || []).map(m => `<option>${m}</option>`).join('');
 }
 </script>
 </body>
