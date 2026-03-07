@@ -17,7 +17,7 @@ const nav = [
 export function Sidebar() {
   const pathname = usePathname();
   return (
-    <aside className="w-60 border-r border-border bg-card flex flex-col shrink-0">
+    <aside className="hidden md:flex w-60 border-r border-border bg-card flex-col shrink-0">
       <nav className="flex-1 p-3 space-y-1 pt-4">
         {nav.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);

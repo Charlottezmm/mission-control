@@ -84,8 +84,14 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    touch-action: manipulation;
   }
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* iPhone safe area */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom);
 }
