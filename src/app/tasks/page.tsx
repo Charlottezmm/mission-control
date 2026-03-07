@@ -571,9 +571,38 @@ export default function TasksPage() {
                 )}
 
                 {activeTab === "activity" && (
-                  <div className="py-12 text-center">
-                    <Clock className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-                    <p className="text-sm text-slate-400">活动日志即将推出</p>
+                  <div className="space-y-0">
+                    {/* Generate activity from task data */}
+                    {[
+                      ...(selectedTask.updated_at && selectedTask.updated_at !== selectedTask.created_at
+                        ? [{ time: selectedTask.updated_at!, text: "任务信息已更新", icon: "✏️" }]
+                        : []),
+                      ...selectedChildren
+                        .filter((c) => normStatus(c.status) === "done" && c.updated_at)
+                        .map((c) => ({ time: c.updated_at!, text: `子任务「${c.title}」已完成`, icon: "✅" })),
+                      ...selectedChildren
+                        .filter((c) => normStatus(c.status) === "in-progress" && c.updated_at)
+                        .map((c) => ({ time: c.updated_at!, text: `子任务「${c.title}」开始执行`, icon: "🔄" })),
+                      { time: selectedTask.created_at!, text: "任务已创建", icon: "📌" },
+                    ]
+                      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+                      .map((item, i) => (
+                        <div key={i} className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-b-0">
+                          <span className="text-base mt-0.5">{item.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-slate-700">{item.text}</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              {new Date(item.time).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric", hour: "numeric", minute: "numeric" })}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    {selectedChildren.length === 0 && !selectedTask.updated_at && (
+                      <div className="py-8 text-center">
+                        <Clock className="w-6 h-6 text-slate-200 mx-auto mb-2" />
+                        <p className="text-xs text-slate-400">暂无活动</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -923,13 +952,12 @@ function AssigneePill({ current, onChange }: { current: string; onChange: (key: 
 /* ── DDL Pill ── */
 function DDLPill({ description, onChange }: { description: string; onChange: (ddl: string | null) => void }) {
   const { ddl } = parseDDL(description);
-  const badge = ddlBadge(ddl);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [showPicker, setShowPicker] = useState(false);
 
   return (
     <div className="relative inline-flex items-center">
       <button
-        onClick={() => inputRef.current?.showPicker()}
+        onClick={() => setShowPicker(!showPicker)}
         className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium border transition-all hover:shadow-sm ${
           ddl
             ? daysUntil(ddl) <= 3
@@ -937,19 +965,34 @@ function DDLPill({ description, onChange }: { description: string; onChange: (dd
               : daysUntil(ddl) <= 7
               ? "bg-orange-50 text-orange-600 border-orange-200"
               : "bg-slate-50 text-slate-600 border-slate-200"
-            : "bg-slate-50 text-slate-400 border-slate-200"
+            : "bg-slate-50 text-slate-400 border-dashed border-slate-300 hover:border-slate-400"
         }`}
       >
         <Calendar className="w-3.5 h-3.5" />
-        {ddl ? badge.text : "设置DDL"}
+        {ddl || "设置DDL"}
       </button>
-      <input
-        ref={inputRef}
-        type="date"
-        value={ddl || ""}
-        onChange={(e) => onChange(e.target.value || null)}
-        className="absolute inset-0 opacity-0 w-full cursor-pointer"
-      />
+      {showPicker && (
+        <div className="absolute top-full left-0 mt-1 z-50 bg-white rounded-lg border border-slate-200 shadow-lg p-3">
+          <input
+            type="date"
+            autoFocus
+            value={ddl || ""}
+            onChange={(e) => {
+              onChange(e.target.value || null);
+              setShowPicker(false);
+            }}
+            className="text-sm border border-slate-200 rounded-md px-2 py-1.5 outline-none focus:border-blue-400"
+          />
+          {ddl && (
+            <button
+              onClick={() => { onChange(null); setShowPicker(false); }}
+              className="ml-2 text-xs text-red-500 hover:text-red-700"
+            >
+              清除
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
