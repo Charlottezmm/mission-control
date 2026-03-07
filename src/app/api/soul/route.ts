@@ -32,11 +32,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid agent" }, { status: 400 });
     }
 
-    // Upsert to Supabase
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/memory_files?path=eq.soul/${agent}`, {
-      method: "PATCH",
-      headers: { ...headers, Prefer: "return=minimal" },
-      body: JSON.stringify({ content, synced_at: new Date().toISOString() }),
+    // Upsert to Supabase (INSERT + ON CONFLICT UPDATE)
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/memory_files`, {
+      method: "POST",
+      headers: { ...headers, Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ path: `soul/${agent}`, content, synced_at: new Date().toISOString() }),
     });
 
     if (!res.ok) {
