@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface ContentItem {
   id: string;
@@ -104,156 +104,152 @@ export default function ContentPage() {
     items: items.filter((item) => matchColumn(item.status) === col.key),
   }));
 
-  const panelOpen = !!selected;
-
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* Board */}
-      <div className="flex-1 flex flex-col min-w-0 p-6">
-        <div className="mb-4">
-          <h1 className="text-xl font-semibold tracking-tight">Content Pipeline</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{items.length} 条内容 · 小红书 / X / 抖音</p>
-        </div>
-        {error && <p className="text-xs text-destructive mb-2">{error}</p>}
+    <div className="p-6 space-y-5">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">Content Pipeline</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">{items.length} 条内容 · 小红书 / X / 抖音</p>
+      </div>
+      {error && <p className="text-xs text-destructive">{error}</p>}
 
-        <div className="flex-1 grid grid-cols-5 gap-2 min-h-0">
-          {grouped.map((col) => (
-            <div key={col.key} className="flex flex-col min-w-0 min-h-0">
-              <div className="flex items-center gap-1.5 mb-2 px-1">
-                <span className="text-xs font-medium text-muted-foreground">{col.label}</span>
-                {col.items.length > 0 && (
-                  <span className="text-[10px] bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 font-mono">{col.items.length}</span>
-                )}
-              </div>
-              <ScrollArea className="flex-1">
-                <div className="space-y-1.5 px-0.5">
-                  {col.items.map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => { setSelected(item); setEditing(false); }}
-                      className={`rounded-lg border p-2.5 cursor-pointer transition-all text-left ${
-                        selected?.id === item.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border/50 hover:border-border bg-card/50 hover:bg-card"
-                      }`}
-                    >
-                      <p className="text-[13px] font-medium leading-snug line-clamp-2 mb-1.5">{item.title}</p>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-muted-foreground">{platformLabel(item.platform)}</span>
-                        {item.created_at && (
-                          <span className="text-[10px] text-muted-foreground/60 ml-auto">{timeAgo(item.created_at)}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
+      {/* Kanban Board - always full width */}
+      <div className="grid grid-cols-5 gap-3 h-[calc(100vh-10rem)]">
+        {grouped.map((col) => (
+          <div key={col.key} className="flex flex-col min-h-0">
+            <div className="flex items-center gap-1.5 mb-2 px-1">
+              <span className="text-xs font-medium text-muted-foreground">{col.label}</span>
+              {col.items.length > 0 && (
+                <span className="text-[10px] bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 font-mono">{col.items.length}</span>
+              )}
             </div>
-          ))}
-        </div>
+            <ScrollArea className="flex-1">
+              <div className="space-y-1.5 px-0.5">
+                {col.items.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => { setSelected(item); setEditing(false); }}
+                    className={`rounded-lg border p-2.5 cursor-pointer transition-all ${
+                      selected?.id === item.id ? "border-primary bg-primary/5" : "border-border/50 hover:border-border bg-card/50 hover:bg-card"
+                    }`}
+                  >
+                    <p className="text-[13px] font-medium leading-snug line-clamp-2 mb-1.5">{item.title}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-muted-foreground">{platformLabel(item.platform)}</span>
+                      {item.created_at && <span className="text-[10px] text-muted-foreground/60 ml-auto">{timeAgo(item.created_at)}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        ))}
       </div>
 
-      {/* Side Panel */}
-      {panelOpen && selected && (
-        <div className="w-[480px] border-l border-border/50 flex flex-col h-screen shrink-0 bg-card/30">
-          {/* Header */}
-          <div className="px-5 pt-5 pb-4 border-b border-border/50">
-            <div className="flex items-start gap-2">
-              <div className="flex-1 min-w-0">
+      {/* Center Modal */}
+      <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setEditing(false); } }}>
+        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col gap-0 p-0 overflow-hidden">
+          {selected && (
+            <>
+              {/* Modal Header */}
+              <div className="px-6 pt-5 pb-4 border-b border-border/50 shrink-0">
                 {!editing ? (
-                  <h2 className="text-base font-semibold leading-snug">{selected.title}</h2>
+                  <>
+                    <DialogHeader>
+                      <DialogTitle className="text-lg font-semibold leading-snug pr-8">{selected.title}</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                      <span>{platformLabel(selected.platform)}</span>
+                      <span>·</span>
+                      <span>{selected.status}</span>
+                      {selected.tags && selected.tags.length > 0 && (
+                        <>
+                          <span>·</span>
+                          <span className="truncate">{selected.tags.join(", ")}</span>
+                        </>
+                      )}
+                      {selected.created_at && (
+                        <>
+                          <span className="ml-auto">{new Date(selected.created_at).toLocaleString("zh-CN")}</span>
+                        </>
+                      )}
+                    </div>
+                  </>
                 ) : (
-                  <Input className="text-base font-semibold" value={editForm.title || ""} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[11px] text-muted-foreground mb-1 block">标题</label>
+                      <Input value={editForm.title || ""} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label className="text-[11px] text-muted-foreground mb-1 block">状态</label>
+                        <select className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm" value={editForm.status || ""} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}>
+                          {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[11px] text-muted-foreground mb-1 block">平台</label>
+                        <Input value={editForm.platform || ""} onChange={(e) => setEditForm({ ...editForm, platform: e.target.value })} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-muted-foreground mb-1 block">标签（逗号分隔）</label>
+                      <Input className="text-sm" value={(editForm.tags || []).join(", ")} onChange={(e) => setEditForm({ ...editForm, tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} />
+                    </div>
+                  </div>
                 )}
               </div>
-              <button onClick={() => { setSelected(null); setEditing(false); }} className="text-muted-foreground hover:text-foreground p-1 -mt-1">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              </button>
-            </div>
-            {!editing ? (
-              <div className="flex items-center gap-2 mt-2.5 text-xs text-muted-foreground">
-                <span>{platformLabel(selected.platform)}</span>
-                <span>·</span>
-                <span>{selected.status}</span>
-                {selected.tags && selected.tags.length > 0 && (
+
+              {/* Modal Body - scrollable */}
+              <div className="flex-1 overflow-y-auto px-6 py-5">
+                {!editing ? (
+                  selected.body ? (
+                    <article className="text-[15px] leading-[1.9] text-foreground/90">
+                      {selected.body.split("\n").map((line, i) => {
+                        if (/^[━─═—]{3,}$/.test(line.trim())) return <hr key={i} className="my-5 border-border/30" />;
+                        if (line.trim() === "") return <div key={i} className="h-3" />;
+                        return <p key={i} className="my-0">{line}</p>;
+                      })}
+                    </article>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">（无正文）</p>
+                  )
+                ) : (
+                  <textarea
+                    className="w-full min-h-[350px] rounded-md border border-input bg-transparent px-4 py-3 text-[15px] leading-[1.9] resize-y focus:ring-1 focus:ring-primary/30 focus:border-primary outline-none"
+                    value={editForm.body || ""}
+                    onChange={(e) => setEditForm({ ...editForm, body: e.target.value })}
+                  />
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-3 border-t border-border/50 flex items-center gap-3 shrink-0">
+                {!editing ? (
                   <>
-                    <span>·</span>
-                    <span className="truncate">{selected.tags.join(", ")}</span>
+                    <button onClick={deleteItem} className="text-xs text-muted-foreground hover:text-destructive transition-colors">删除</button>
+                    <button onClick={startEdit} className="text-xs text-muted-foreground hover:text-foreground transition-colors">编辑</button>
+                    <div className="flex-1" />
+                    {(() => {
+                      const idx = STATUS_OPTIONS.indexOf(selected.status);
+                      const next = idx >= 0 && idx < STATUS_OPTIONS.length - 1 ? STATUS_OPTIONS[idx + 1] : null;
+                      return next ? (
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => moveStatus(next)}>→ {next}</Button>
+                      ) : null;
+                    })()}
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => setEditing(false)} className="text-xs text-muted-foreground hover:text-foreground">取消</button>
+                    <div className="flex-1" />
+                    <Button size="sm" className="h-7 text-xs" onClick={saveEdit} disabled={saving}>{saving ? "..." : "保存"}</Button>
                   </>
                 )}
               </div>
-            ) : (
-              <div className="flex gap-2 mt-2.5">
-                <select className="h-8 rounded-md border border-input bg-transparent px-2 text-xs flex-1" value={editForm.status || ""} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}>
-                  {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <Input className="flex-1 h-8 text-xs" placeholder="平台" value={editForm.platform || ""} onChange={(e) => setEditForm({ ...editForm, platform: e.target.value })} />
-              </div>
-            )}
-          </div>
-
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto px-5 py-4">
-            {!editing ? (
-              selected.body ? (
-                <article className="text-[14px] leading-[1.8] text-foreground/85 whitespace-pre-wrap [&>*]:my-0">
-                  {selected.body.split("\n").map((line, i) => {
-                    // Hide ugly separator lines
-                    if (/^[━─═—]{3,}$/.test(line.trim())) {
-                      return <div key={i} className="my-4 border-t border-border/30" />;
-                    }
-                    if (line.trim() === "") return <div key={i} className="h-3" />;
-                    return <p key={i} className="my-0">{line}</p>;
-                  })}
-                </article>
-              ) : (
-                <p className="text-sm text-muted-foreground">（无正文）</p>
-              )
-            ) : (
-              <div className="space-y-3">
-                <textarea
-                  className="w-full min-h-[400px] rounded-md border border-input bg-transparent px-3 py-2 text-[14px] leading-[1.8] resize-y focus:ring-1 focus:ring-primary/30 focus:border-primary outline-none"
-                  value={editForm.body || ""}
-                  onChange={(e) => setEditForm({ ...editForm, body: e.target.value })}
-                />
-                <div>
-                  <label className="text-[11px] text-muted-foreground mb-1 block">标签（逗号分隔）</label>
-                  <Input className="text-xs" value={(editForm.tags || []).join(", ")} onChange={(e) => setEditForm({ ...editForm, tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="px-5 py-3 border-t border-border/50 flex items-center gap-2">
-            {!editing ? (
-              <>
-                <button onClick={deleteItem} className="text-[11px] text-muted-foreground hover:text-destructive transition-colors">删除</button>
-                <button onClick={startEdit} className="text-[11px] text-muted-foreground hover:text-foreground transition-colors ml-1">编辑</button>
-                <div className="flex-1" />
-                {selected.created_at && (
-                  <span className="text-[10px] text-muted-foreground/50">{new Date(selected.created_at).toLocaleString("zh-CN")}</span>
-                )}
-                {(() => {
-                  const idx = STATUS_OPTIONS.indexOf(selected.status);
-                  const next = idx >= 0 && idx < STATUS_OPTIONS.length - 1 ? STATUS_OPTIONS[idx + 1] : null;
-                  return next ? (
-                    <Button size="sm" variant="outline" className="h-7 text-xs ml-2" onClick={() => moveStatus(next)}>
-                      → {next}
-                    </Button>
-                  ) : null;
-                })()}
-              </>
-            ) : (
-              <>
-                <button onClick={() => setEditing(false)} className="text-[11px] text-muted-foreground hover:text-foreground">取消</button>
-                <div className="flex-1" />
-                <Button size="sm" className="h-7 text-xs" onClick={saveEdit} disabled={saving}>{saving ? "..." : "保存"}</Button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
