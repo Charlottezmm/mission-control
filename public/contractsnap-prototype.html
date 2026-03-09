@@ -167,9 +167,44 @@ body {
 .tier-price small { font-size:12px; font-weight:400; color:var(--text2); }
 .tier-desc { font-size:12px; color:var(--text2); margin-top:4px; }
 
+/* ===== HUB + NEW FLOWS ===== */
+.flow-switch { display:flex; gap:8px; background:rgba(255,255,255,0.12); backdrop-filter: blur(10px); border-radius:12px; padding:6px; margin:10px auto 0; width:max-content; }
+.flow-tab { padding:8px 12px; border-radius:10px; border:none; background:transparent; color:rgba(255,255,255,0.7); font-size:12px; font-weight:600; cursor:pointer; }
+.flow-tab.active { background:white; color:var(--text); }
+.quick-actions { display:flex; gap:10px; margin-top:14px; justify-content:center; }
+.quick-card { width:132px; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.12); color:white; text-align:left; cursor:pointer; }
+.quick-title { font-size:13px; font-weight:700; margin-bottom:4px; }
+.quick-sub { font-size:11px; opacity:0.8; line-height:1.3; }
+
+.flow-page { padding:20px; background: var(--surface); min-height:100%; }
+.flow-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.flow-title { font-size:22px; font-weight:800; }
+.flow-pill { font-size:12px; font-weight:700; color:var(--primary); background:var(--primary-light); padding:5px 10px; border-radius:999px; }
+.option-list { display:flex; flex-direction:column; gap:10px; margin-top:8px; }
+.option-card { padding:14px; border-radius:14px; border:1.5px solid var(--border); background:var(--bg); cursor:pointer; }
+.option-card.selected { border-color:var(--primary); background:#F7FBFF; }
+.option-name { font-size:16px; font-weight:700; margin-bottom:4px; }
+.option-desc { font-size:13px; color:var(--text2); }
+.form-grid { display:flex; flex-direction:column; gap:10px; }
+.input-wrap { background:var(--bg); border-radius:12px; padding:10px 12px; border:1px solid var(--border); }
+.input-label { font-size:12px; color:var(--text2); margin-bottom:6px; display:block; }
+.flow-input, .flow-textarea { width:100%; border:none; outline:none; background:transparent; font-size:15px; color:var(--text); font-family:inherit; }
+.flow-textarea { min-height:90px; resize:none; }
+.primary-btn { width:100%; padding:14px; border:none; border-radius:14px; background:var(--primary); color:white; font-size:16px; font-weight:700; margin-top:14px; cursor:pointer; }
+.secondary-btn { width:100%; padding:13px; border:1.5px solid var(--border); border-radius:14px; background:var(--bg); color:var(--text); font-size:15px; font-weight:600; margin-top:10px; cursor:pointer; }
+.editor-box { white-space:pre-line; font-size:14px; line-height:1.7; background:var(--bg); padding:14px; border-radius:12px; max-height:390px; overflow:auto; }
+.upload-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.upload-card { background:var(--bg); border:1.5px dashed #B8B8BE; border-radius:14px; padding:18px 10px; text-align:center; min-height:160px; display:flex; flex-direction:column; justify-content:center; gap:6px; }
+.upload-card.done { border-style:solid; border-color:var(--accent); background:#F1FCF5; }
+.diff-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.diff-item { border-left:4px solid var(--warning); background:#FFF8EC; border-radius:10px; padding:10px 12px; }
+.diff-item.high { border-left-color:var(--danger); background:#FFF5F5; }
+.diff-title { font-size:14px; font-weight:700; margin-bottom:3px; }
+.diff-desc { font-size:13px; color:var(--text2); line-height:1.5; }
+
 /* nav arrows */
 .nav-float { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 12px; z-index: 20; }
-.nav-btn { padding: 10px 24px; border-radius: 22px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; border: none; backdrop-filter: blur(10px); }
+.nav-btn { padding: 10px 20px; border-radius: 22px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; border: none; backdrop-filter: blur(10px); }
 .nav-prev { background: rgba(60,60,67,0.08); color: var(--text2); }
 .nav-next { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(0,122,255,0.3); }
 
@@ -196,12 +231,27 @@ body {
           <button class="cap-btn">?</button>
         </div>
         <div class="capture-viewfinder">
+          <div class="flow-switch">
+            <button class="flow-tab active" id="tab-review" onclick="switchFlow('review')">合同审查</button>
+            <button class="flow-tab" id="tab-generate" onclick="startGenerateFlow()">生成合同</button>
+            <button class="flow-tab" id="tab-compare" onclick="startCompareFlow()">合同对比</button>
+          </div>
           <div class="viewfinder-frame">
             <div class="corner-bl"></div>
             <div class="corner-br"></div>
             <span class="vf-icon">📄</span>
             <span class="vf-text">对准合同页面，保持光线充足</span>
             <span class="page-count">1/3 页</span>
+          </div>
+          <div class="quick-actions">
+            <button class="quick-card" onclick="startGenerateFlow()">
+              <div class="quick-title">✍️ 生成新合同</div>
+              <div class="quick-sub">选择模板 → 填信息 → AI生成</div>
+            </button>
+            <button class="quick-card" onclick="startCompareFlow()">
+              <div class="quick-title">🔍 合同对比</div>
+              <div class="quick-sub">上传A/B版本 → 差异列表</div>
+            </button>
           </div>
         </div>
         <div class="capture-bottom">
@@ -341,6 +391,157 @@ body {
       </div>
     </div>
 
+    <!-- ===== 生成合同 1/3：类型选择 ===== -->
+    <div class="page" id="page-generate-type">
+      <div class="flow-page">
+        <div class="flow-header">
+          <div class="flow-title">生成合同</div>
+          <span class="flow-pill">1/3 类型选择</span>
+        </div>
+        <div class="option-list" id="contractTypeList">
+          <div class="option-card selected" onclick="selectContractType(this, '劳务合同')">
+            <div class="option-name">劳务合同</div>
+            <div class="option-desc">自由职业、顾问、短期服务合作</div>
+          </div>
+          <div class="option-card" onclick="selectContractType(this, '采购合同')">
+            <div class="option-name">采购合同</div>
+            <div class="option-desc">货物采购、交付、付款节点约定</div>
+          </div>
+          <div class="option-card" onclick="selectContractType(this, '保密协议NDA')">
+            <div class="option-name">保密协议（NDA）</div>
+            <div class="option-desc">商业秘密保护、竞业和信息披露边界</div>
+          </div>
+          <div class="option-card" onclick="selectContractType(this, '技术服务合同')">
+            <div class="option-name">技术服务合同</div>
+            <div class="option-desc">开发/运维/技术支持服务与SLA</div>
+          </div>
+        </div>
+        <button class="primary-btn" onclick="goStep(6)">下一步：填写信息</button>
+        <button class="secondary-btn" onclick="switchFlow('review')">返回审查流程</button>
+      </div>
+    </div>
+
+    <!-- ===== 生成合同 2/3：信息表单 ===== -->
+    <div class="page" id="page-generate-form">
+      <div class="flow-page">
+        <div class="flow-header">
+          <div class="flow-title">填写合同信息</div>
+          <span class="flow-pill">2/3 信息表单</span>
+        </div>
+        <div class="form-grid">
+          <div class="input-wrap">
+            <span class="input-label">甲方名称</span>
+            <input class="flow-input" value="星海科技有限公司" />
+          </div>
+          <div class="input-wrap">
+            <span class="input-label">乙方名称</span>
+            <input class="flow-input" value="张某（自由职业设计师）" />
+          </div>
+          <div class="input-wrap">
+            <span class="input-label">合同金额（人民币）</span>
+            <input class="flow-input" value="18000" />
+          </div>
+          <div class="input-wrap">
+            <span class="input-label">服务周期</span>
+            <input class="flow-input" value="2026-03-15 至 2026-05-15" />
+          </div>
+          <div class="input-wrap">
+            <span class="input-label">交付与验收要求</span>
+            <textarea class="flow-textarea">乙方需提交高保真UI稿、交互标注及组件规范。甲方在7个工作日内完成验收并书面反馈，逾期未反馈视为验收通过。</textarea>
+          </div>
+        </div>
+        <button class="primary-btn" onclick="goStep(7)">AI生成合同草案</button>
+        <button class="secondary-btn" onclick="goStep(5)">上一步</button>
+      </div>
+    </div>
+
+    <!-- ===== 生成合同 3/3：结果编辑 ===== -->
+    <div class="page" id="page-generate-result">
+      <div class="flow-page">
+        <div class="flow-header">
+          <div class="flow-title">合同草案（可编辑）</div>
+          <span class="flow-pill">3/3 生成结果</span>
+        </div>
+        <div class="editor-box" id="generatedDraft">《劳务合同》
+
+甲方：星海科技有限公司
+乙方：张某（自由职业设计师）
+
+一、服务内容
+乙方向甲方提供UI设计与交互优化服务，产出包括高保真页面、交互说明与组件规范。
+
+二、费用与支付
+合同总金额为人民币18,000元。
+1）签署后3日内支付50%；
+2）验收通过后5个工作日内支付剩余50%。
+
+三、交付与验收
+乙方按约定里程碑交付。甲方应在收到交付后7个工作日内书面反馈；逾期未反馈视为验收通过。
+
+四、违约责任
+任一方违约应承担损失赔偿责任。逾期付款违约金为未付款项的万分之五/日，累计不超过合同总额10%。
+
+五、争议解决
+双方协商不成，提交被告住所地有管辖权的人民法院处理。</div>
+        <button class="primary-btn">保存草案到我的合同库</button>
+        <button class="secondary-btn" onclick="goStep(6)">返回编辑信息</button>
+      </div>
+    </div>
+
+    <!-- ===== 合同对比 1/2：上传A/B ===== -->
+    <div class="page" id="page-compare-upload">
+      <div class="flow-page">
+        <div class="flow-header">
+          <div class="flow-title">合同对比</div>
+          <span class="flow-pill">1/2 上传版本</span>
+        </div>
+        <div class="upload-grid">
+          <div class="upload-card done">
+            <div style="font-size:28px;">📄</div>
+            <div style="font-size:14px;font-weight:700;">版本A（原始）</div>
+            <div style="font-size:12px;color:var(--text2);">labor-v1.pdf 已上传</div>
+          </div>
+          <div class="upload-card done">
+            <div style="font-size:28px;">📄</div>
+            <div style="font-size:14px;font-weight:700;">版本B（修订）</div>
+            <div style="font-size:12px;color:var(--text2);">labor-v2.pdf 已上传</div>
+          </div>
+        </div>
+        <button class="primary-btn" onclick="goStep(9)">开始对比差异</button>
+        <button class="secondary-btn" onclick="switchFlow('review')">返回审查流程</button>
+      </div>
+    </div>
+
+    <!-- ===== 合同对比 2/2：Diff结果 ===== -->
+    <div class="page" id="page-compare-result">
+      <div class="flow-page">
+        <div class="flow-header">
+          <div class="flow-title">对比结果</div>
+          <span class="flow-pill">2/2 差异列表</span>
+        </div>
+        <div class="diff-list">
+          <div class="diff-item high">
+            <div class="diff-title">高风险：违约金条款被上调</div>
+            <div class="diff-desc">版本A：万分之五/日（上限10%） → 版本B：0.5%/日（无上限）</div>
+          </div>
+          <div class="diff-item high">
+            <div class="diff-title">高风险：争议管辖由中立改为甲方所在地</div>
+            <div class="diff-desc">版本A：被告住所地法院管辖 → 版本B：甲方所在地法院管辖</div>
+          </div>
+          <div class="diff-item">
+            <div class="diff-title">中风险：验收时限被删除</div>
+            <div class="diff-desc">版本A约定“7个工作日内反馈”条款在版本B中被移除，存在拖延风险。</div>
+          </div>
+          <div class="diff-item">
+            <div class="diff-title">提示：付款节点从2期改为3期</div>
+            <div class="diff-desc">版本B新增“上线稳定运行15日后支付20%”条款，建议确认触发条件。</div>
+          </div>
+        </div>
+        <button class="primary-btn">导出差异报告（PDF）</button>
+        <button class="secondary-btn" onclick="goStep(8)">返回上传页</button>
+      </div>
+    </div>
+
   </div>
 
   <!-- Navigation -->
@@ -348,27 +549,76 @@ body {
     <button class="nav-btn nav-prev" onclick="prevStep()">‹ 上一步</button>
     <span style="font-size:13px;color:var(--text2);padding:10px 0" id="stepLabel">1/5 拍照</span>
     <button class="nav-btn nav-next" onclick="nextStep()">下一步 ›</button>
+    <button class="nav-btn" style="background:#111;color:#fff" onclick="switchFlow('review')">审查</button>
+    <button class="nav-btn" style="background:#111;color:#fff" onclick="startGenerateFlow()">生成</button>
+    <button class="nav-btn" style="background:#111;color:#fff" onclick="startCompareFlow()">对比</button>
   </div>
 </div>
 
 <script>
-const pages = ['capture','ocr','preview','result','paywall'];
-const labels = ['拍照','OCR识别','合同预览','AI解读','付费'];
+const pages = ['capture','ocr','preview','result','paywall','generate-type','generate-form','generate-result','compare-upload','compare-result'];
+const labels = ['拍照','OCR识别','合同预览','AI解读','付费','类型选择','信息表单','生成结果','上传A/B','差异结果'];
 let step = 0;
+let currentFlow = 'review';
+let selectedContractType = '劳务合同';
+
+function setFlowTab(flow) {
+  const map = { review: 'tab-review', generate: 'tab-generate', compare: 'tab-compare' };
+  Object.values(map).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  const active = document.getElementById(map[flow]);
+  if (active) active.classList.add('active');
+}
+
+function switchFlow(flow) {
+  currentFlow = flow;
+  setFlowTab(flow);
+  if(flow === 'review') goStep(0);
+  if(flow === 'generate') goStep(5);
+  if(flow === 'compare') goStep(8);
+}
+function startGenerateFlow() { switchFlow('generate'); }
+function startCompareFlow() { switchFlow('compare'); }
 
 function goStep(n) {
   step = n;
   pages.forEach((p,i) => {
     document.getElementById('page-'+p).classList.toggle('active', i===step);
   });
-  document.getElementById('stepLabel').textContent = `${step+1}/5 ${labels[step]}`;
-  // animate OCR
+
+  const inReview = step <= 4;
+  const total = inReview ? 5 : (step <= 7 ? 3 : 2);
+  const index = inReview ? step + 1 : (step <= 7 ? step - 4 : step - 7);
+  document.getElementById('stepLabel').textContent = `${index}/${total} ${labels[step]}`;
+
   if(step===1) animateOCR();
-  // status bar color
   document.querySelector('.status-bar').style.color = step===0 ? 'white' : 'var(--text)';
+
+  if(step <= 4) setFlowTab('review');
+  else if(step <= 7) setFlowTab('generate');
+  else setFlowTab('compare');
 }
-function nextStep() { if(step<4) goStep(step+1); }
-function prevStep() { if(step>0) goStep(step-1); }
+
+function nextStep() {
+  if(step<=3) return goStep(step+1);
+  if(step===4) return goStep(0);
+  if(step===5) return goStep(6);
+  if(step===6) return goStep(7);
+  if(step===7) return goStep(5);
+  if(step===8) return goStep(9);
+  if(step===9) return goStep(8);
+}
+
+function prevStep() {
+  if(step>0 && step<=4) return goStep(step-1);
+  if(step===5) return goStep(0);
+  if(step===6) return goStep(5);
+  if(step===7) return goStep(6);
+  if(step===8) return goStep(0);
+  if(step===9) return goStep(8);
+}
 
 function animateOCR() {
   let pct = 0;
@@ -391,6 +641,14 @@ function selectTier(el) {
   el.classList.add('selected');
   const price = el.querySelector('.tier-price').textContent.trim().split(' ')[0];
   document.querySelector('.pw-buy').textContent = '立即支付 ' + price;
+}
+
+function selectContractType(el, type) {
+  document.querySelectorAll('#contractTypeList .option-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedContractType = type;
+  const draft = document.getElementById('generatedDraft');
+  if (draft) draft.textContent = draft.textContent.replace(/《.*?》/, `《${type}》`);
 }
 </script>
 </body>
