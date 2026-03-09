@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,20 +17,14 @@ interface ContentItem {
 }
 
 const COLUMNS = [
-  { key: "Ideas", label: "💡 Ideas", color: "border-yellow-500/40" },
-  { key: "Writing", label: "✍️ Writing", color: "border-blue-500/40" },
-  { key: "Review", label: "👀 Review", color: "border-orange-500/40" },
-  { key: "Publishing", label: "📤 Publishing", color: "border-purple-500/40" },
-  { key: "Published", label: "✅ Published", color: "border-green-500/40" },
+  { key: "Ideas", label: "💡 Ideas" },
+  { key: "Writing", label: "✍️ Writing" },
+  { key: "Review", label: "👀 Review" },
+  { key: "Publishing", label: "📤 Publishing" },
+  { key: "Published", label: "✅ Published" },
 ];
 
 const STATUS_OPTIONS = ["Ideas", "Writing", "Review", "Publishing", "Published"];
-
-const PLATFORM_COLORS: Record<string, string> = {
-  xiaohongshu: "bg-red-500/20 text-red-300 border-red-500/30",
-  x: "bg-sky-500/20 text-sky-300 border-sky-500/30",
-  douyin: "bg-pink-500/20 text-pink-300 border-pink-500/30",
-};
 
 function matchColumn(status: string): string {
   const s = status.toLowerCase();
@@ -46,13 +39,17 @@ function matchColumn(status: string): string {
 function timeAgo(dateStr: string) {
   const d = new Date(dateStr);
   const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 60) return `${mins}分钟前`;
+  const mins = Math.floor((now.getTime() - d.getTime()) / 60000);
+  if (mins < 60) return `${mins}m`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}小时前`;
-  const days = Math.floor(hrs / 24);
-  return `${days}天前`;
+  if (hrs < 24) return `${hrs}h`;
+  return `${Math.floor(hrs / 24)}d`;
+}
+
+function platformLabel(p: string) {
+  if (p === "xiaohongshu") return "小红书";
+  if (p === "douyin") return "抖音";
+  return p.toUpperCase();
 }
 
 export default function ContentPage() {
@@ -74,13 +71,7 @@ export default function ContentPage() {
 
   const startEdit = () => {
     if (!selected) return;
-    setEditForm({
-      title: selected.title,
-      status: selected.status,
-      platform: selected.platform,
-      body: selected.body || "",
-      tags: selected.tags || [],
-    });
+    setEditForm({ title: selected.title, status: selected.status, platform: selected.platform, body: selected.body || "", tags: selected.tags || [] });
     setEditing(true);
   };
 
@@ -88,17 +79,9 @@ export default function ContentPage() {
     if (!selected) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/content", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: selected.id, ...editForm }),
-      });
+      const res = await fetch("/api/content", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: selected.id, ...editForm }) });
       const data = await res.json();
-      if (data.item) {
-        setSelected(data.item);
-        setEditing(false);
-        fetchItems();
-      }
+      if (data.item) { setSelected(data.item); setEditing(false); fetchItems(); }
     } catch (e: any) { setError(e.message); }
     finally { setSaving(false); }
   };
@@ -106,17 +89,12 @@ export default function ContentPage() {
   const deleteItem = async () => {
     if (!selected || !confirm("确定删除？")) return;
     await fetch(`/api/content?id=${selected.id}`, { method: "DELETE" });
-    setSelected(null);
-    fetchItems();
+    setSelected(null); fetchItems();
   };
 
   const moveStatus = async (newStatus: string) => {
     if (!selected) return;
-    const res = await fetch("/api/content", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: selected.id, status: newStatus }),
-    });
+    const res = await fetch("/api/content", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: selected.id, status: newStatus }) });
     const data = await res.json();
     if (data.item) { setSelected(data.item); fetchItems(); }
   };
@@ -126,160 +104,141 @@ export default function ContentPage() {
     items: items.filter((item) => matchColumn(item.status) === col.key),
   }));
 
-  // Side panel open?
   const panelOpen = !!selected;
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Kanban Board */}
-      <div className={`flex-1 p-6 transition-all duration-300 ${panelOpen ? "pr-0" : ""}`}>
-        <div className="mb-5">
-          <h1 className="text-2xl font-bold tracking-tight">Content Pipeline</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {items.length} 条内容 · 小红书 / X / 抖音
-          </p>
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Board */}
+      <div className="flex-1 flex flex-col min-w-0 p-6">
+        <div className="mb-4">
+          <h1 className="text-xl font-semibold tracking-tight">Content Pipeline</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{items.length} 条内容 · 小红书 / X / 抖音</p>
         </div>
-        {error && <p className="text-sm text-destructive mb-3">Error: {error}</p>}
+        {error && <p className="text-xs text-destructive mb-2">{error}</p>}
 
-        <div className={`grid gap-3 h-[calc(100vh-8rem)] ${panelOpen ? "grid-cols-3" : "grid-cols-5"}`}>
-          {grouped.map((col) => {
-            // When panel is open, hide Ideas and Published columns to save space
-            if (panelOpen && (col.key === "Ideas" || col.key === "Published") && col.items.length === 0) return null;
-            return (
-              <div key={col.key} className="flex flex-col min-w-0">
-                <div className={`flex items-center gap-2 mb-3 pb-2 border-b-2 ${col.color}`}>
-                  <h2 className="text-sm font-semibold">{col.label}</h2>
-                  <span className="ml-auto text-xs text-muted-foreground font-mono">{col.items.length}</span>
-                </div>
-                <ScrollArea className="flex-1">
-                  <div className="space-y-2 pr-1">
-                    {col.items.map((item) => (
-                      <Card
-                        key={item.id}
-                        className={`transition-all cursor-pointer border ${
-                          selected?.id === item.id
-                            ? "ring-2 ring-primary border-primary"
-                            : "hover:border-muted-foreground/30"
-                        }`}
-                        onClick={() => { setSelected(item); setEditing(false); }}
-                      >
-                        <CardContent className="p-3 space-y-2">
-                          <p className="text-sm font-medium leading-snug line-clamp-2">{item.title}</p>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <Badge
-                              variant="outline"
-                              className={`text-[11px] ${PLATFORM_COLORS[item.platform] || ""}`}
-                            >
-                              {item.platform}
-                            </Badge>
-                            {item.created_at && (
-                              <span className="text-[10px] text-muted-foreground ml-auto">
-                                {timeAgo(item.created_at)}
-                              </span>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
+        <div className="flex-1 grid grid-cols-5 gap-2 min-h-0">
+          {grouped.map((col) => (
+            <div key={col.key} className="flex flex-col min-w-0 min-h-0">
+              <div className="flex items-center gap-1.5 mb-2 px-1">
+                <span className="text-xs font-medium text-muted-foreground">{col.label}</span>
+                {col.items.length > 0 && (
+                  <span className="text-[10px] bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 font-mono">{col.items.length}</span>
+                )}
               </div>
-            );
-          })}
+              <ScrollArea className="flex-1">
+                <div className="space-y-1.5 px-0.5">
+                  {col.items.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => { setSelected(item); setEditing(false); }}
+                      className={`rounded-lg border p-2.5 cursor-pointer transition-all text-left ${
+                        selected?.id === item.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border/50 hover:border-border bg-card/50 hover:bg-card"
+                      }`}
+                    >
+                      <p className="text-[13px] font-medium leading-snug line-clamp-2 mb-1.5">{item.title}</p>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-muted-foreground">{platformLabel(item.platform)}</span>
+                        {item.created_at && (
+                          <span className="text-[10px] text-muted-foreground/60 ml-auto">{timeAgo(item.created_at)}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Side Panel */}
-      {selected && (
-        <div className="w-[520px] border-l bg-background flex flex-col h-screen shrink-0">
+      {panelOpen && selected && (
+        <div className="w-[480px] border-l border-border/50 flex flex-col h-screen shrink-0 bg-card/30">
           {/* Header */}
-          <div className="p-4 border-b flex items-start gap-3">
-            <div className="flex-1 min-w-0">
-              {!editing ? (
-                <h2 className="text-lg font-semibold leading-snug">{selected.title}</h2>
-              ) : (
-                <Input
-                  className="text-lg font-semibold"
-                  value={editForm.title || ""}
-                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                />
-              )}
-              <div className="flex gap-2 mt-2 flex-wrap">
+          <div className="px-5 pt-5 pb-4 border-b border-border/50">
+            <div className="flex items-start gap-2">
+              <div className="flex-1 min-w-0">
                 {!editing ? (
-                  <>
-                    <Badge variant="outline" className={PLATFORM_COLORS[selected.platform] || ""}>{selected.platform}</Badge>
-                    <Badge variant="secondary">{selected.status}</Badge>
-                    {selected.tags?.map((t) => (
-                      <Badge key={t} variant="outline" className="text-xs">{t}</Badge>
-                    ))}
-                  </>
+                  <h2 className="text-base font-semibold leading-snug">{selected.title}</h2>
                 ) : (
-                  <div className="flex gap-2 w-full">
-                    <select
-                      className="h-8 rounded-md border border-input bg-transparent px-2 text-sm flex-1"
-                      value={editForm.status || ""}
-                      onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                    >
-                      {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <Input
-                      className="flex-1 h-8"
-                      placeholder="平台"
-                      value={editForm.platform || ""}
-                      onChange={(e) => setEditForm({ ...editForm, platform: e.target.value })}
-                    />
-                  </div>
+                  <Input className="text-base font-semibold" value={editForm.title || ""} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
                 )}
               </div>
+              <button onClick={() => { setSelected(null); setEditing(false); }} className="text-muted-foreground hover:text-foreground p-1 -mt-1">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              </button>
             </div>
-            <Button variant="ghost" size="sm" className="shrink-0 text-lg" onClick={() => { setSelected(null); setEditing(false); }}>✕</Button>
+            {!editing ? (
+              <div className="flex items-center gap-2 mt-2.5 text-xs text-muted-foreground">
+                <span>{platformLabel(selected.platform)}</span>
+                <span>·</span>
+                <span>{selected.status}</span>
+                {selected.tags && selected.tags.length > 0 && (
+                  <>
+                    <span>·</span>
+                    <span className="truncate">{selected.tags.join(", ")}</span>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="flex gap-2 mt-2.5">
+                <select className="h-8 rounded-md border border-input bg-transparent px-2 text-xs flex-1" value={editForm.status || ""} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}>
+                  {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <Input className="flex-1 h-8 text-xs" placeholder="平台" value={editForm.platform || ""} onChange={(e) => setEditForm({ ...editForm, platform: e.target.value })} />
+              </div>
+            )}
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto px-5 py-4">
             {!editing ? (
               selected.body ? (
-                <div className="text-[15px] leading-relaxed whitespace-pre-wrap text-foreground/90">
-                  {selected.body}
-                </div>
+                <article className="text-[14px] leading-[1.8] text-foreground/85 whitespace-pre-wrap [&>*]:my-0">
+                  {selected.body.split("\n").map((line, i) => {
+                    // Hide ugly separator lines
+                    if (/^[━─═—]{3,}$/.test(line.trim())) {
+                      return <div key={i} className="my-4 border-t border-border/30" />;
+                    }
+                    if (line.trim() === "") return <div key={i} className="h-3" />;
+                    return <p key={i} className="my-0">{line}</p>;
+                  })}
+                </article>
               ) : (
-                <p className="text-muted-foreground text-sm">（无正文）</p>
+                <p className="text-sm text-muted-foreground">（无正文）</p>
               )
             ) : (
               <div className="space-y-3">
                 <textarea
-                  className="w-full min-h-[400px] rounded-md border border-input bg-transparent px-3 py-2 text-[15px] leading-relaxed resize-y focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
+                  className="w-full min-h-[400px] rounded-md border border-input bg-transparent px-3 py-2 text-[14px] leading-[1.8] resize-y focus:ring-1 focus:ring-primary/30 focus:border-primary outline-none"
                   value={editForm.body || ""}
                   onChange={(e) => setEditForm({ ...editForm, body: e.target.value })}
                 />
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">标签（逗号分隔）</label>
-                  <Input
-                    value={(editForm.tags || []).join(", ")}
-                    onChange={(e) => setEditForm({ ...editForm, tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
-                  />
+                  <label className="text-[11px] text-muted-foreground mb-1 block">标签（逗号分隔）</label>
+                  <Input className="text-xs" value={(editForm.tags || []).join(", ")} onChange={(e) => setEditForm({ ...editForm, tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} />
                 </div>
               </div>
             )}
           </div>
 
-          {/* Footer Actions */}
-          <div className="p-4 border-t flex items-center gap-2">
+          {/* Footer */}
+          <div className="px-5 py-3 border-t border-border/50 flex items-center gap-2">
             {!editing ? (
               <>
-                <Button variant="destructive" size="sm" onClick={deleteItem}>删除</Button>
-                <Button variant="outline" size="sm" onClick={startEdit}>编辑</Button>
+                <button onClick={deleteItem} className="text-[11px] text-muted-foreground hover:text-destructive transition-colors">删除</button>
+                <button onClick={startEdit} className="text-[11px] text-muted-foreground hover:text-foreground transition-colors ml-1">编辑</button>
                 <div className="flex-1" />
                 {selected.created_at && (
-                  <span className="text-[11px] text-muted-foreground mr-2">
-                    {new Date(selected.created_at).toLocaleString("zh-CN")}
-                  </span>
+                  <span className="text-[10px] text-muted-foreground/50">{new Date(selected.created_at).toLocaleString("zh-CN")}</span>
                 )}
                 {(() => {
                   const idx = STATUS_OPTIONS.indexOf(selected.status);
                   const next = idx >= 0 && idx < STATUS_OPTIONS.length - 1 ? STATUS_OPTIONS[idx + 1] : null;
                   return next ? (
-                    <Button size="sm" onClick={() => moveStatus(next)}>
+                    <Button size="sm" variant="outline" className="h-7 text-xs ml-2" onClick={() => moveStatus(next)}>
                       → {next}
                     </Button>
                   ) : null;
@@ -287,11 +246,9 @@ export default function ContentPage() {
               </>
             ) : (
               <>
-                <Button variant="outline" size="sm" onClick={() => setEditing(false)}>取消</Button>
+                <button onClick={() => setEditing(false)} className="text-[11px] text-muted-foreground hover:text-foreground">取消</button>
                 <div className="flex-1" />
-                <Button size="sm" onClick={saveEdit} disabled={saving}>
-                  {saving ? "保存中..." : "保存"}
-                </Button>
+                <Button size="sm" className="h-7 text-xs" onClick={saveEdit} disabled={saving}>{saving ? "..." : "保存"}</Button>
               </>
             )}
           </div>
