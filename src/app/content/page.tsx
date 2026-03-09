@@ -147,7 +147,7 @@ export default function ContentPage() {
 
       {/* Center Modal */}
       <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setEditing(false); } }}>
-        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col gap-0 p-0 overflow-hidden">
+        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col gap-0 p-0 overflow-hidden !bg-white dark:!bg-neutral-900 shadow-2xl">
           {selected && (
             <>
               {/* Modal Header */}
